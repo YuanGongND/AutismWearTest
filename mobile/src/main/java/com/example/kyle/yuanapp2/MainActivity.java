@@ -56,14 +56,16 @@ public class MainActivity extends AppCompatActivity {
     public void onStartMonitor(View view)
     {
         RadioButton r1=(RadioButton)findViewById(R.id.radioButton);
-        if(sign==0);
+        if(sign==0)
         {
             r1.setText("Stop");
-            sign=1;
+            r1.setChecked(true);
+            sign = 1;
         }
-        else
+        else if(sign==1)
         {
             r1.setText("Start");
+            r1.setChecked(false);
             sign=0;
         }
     }
