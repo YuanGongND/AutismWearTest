@@ -11,16 +11,17 @@ import android.view.MenuItem;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.app.NotificationCompat.WearableExtender;
+import android.widget.RadioButton;
 
 public class MainActivity extends AppCompatActivity {
 
+    public static int sign=0;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -49,7 +50,21 @@ public class MainActivity extends AppCompatActivity {
         if (id == R.id.action_settings) {
             return true;
         }
-
         return super.onOptionsItemSelected(item);
+    }
+
+    public void onStartMonitor(View view)
+    {
+        RadioButton r1=(RadioButton)findViewById(R.id.radioButton);
+        if(sign==0);
+        {
+            r1.setText("Stop");
+            sign=1;
+        }
+        else
+        {
+            r1.setText("Start");
+            sign=0;
+        }
     }
 }
