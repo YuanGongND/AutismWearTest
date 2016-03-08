@@ -15,7 +15,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="This App is collecting information through your Android Wear device. Information may includes voice activity(no recording),speech recording,gesture,heart rate and etc"
+        android:text="This Ap  p is collecting information through your Android Wear device. Information may includes voice activity(no recording),speech recording,gesture,heart rate and etc"
         android:id="@+id/textView" />
 
     <CheckBox
@@ -61,10 +61,22 @@
     <RadioButton
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="New RadioButton"
+        android:text="@string/button_name"
         android:id="@+id/radioButton"
+        android:onClick="onStartMonitor"
         android:layout_marginTop="22dp"
         android:layout_below="@+id/checkBox4"
         android:layout_alignParentStart="true" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:text="wait for test"
+        android:id="@+id/textView2"
+        android:visibility="invisible"
+        android:layout_below="@+id/radioButton"
+        android:layout_alignEnd="@+id/checkBox3"
+        android:layout_marginTop="22dp" />
 
 </RelativeLayout>
