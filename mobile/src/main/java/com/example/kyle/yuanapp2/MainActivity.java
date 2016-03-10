@@ -1,5 +1,7 @@
 package com.example.kyle.yuanapp2;
 
+import android.app.PendingIntent;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
@@ -56,14 +58,35 @@ public class MainActivity extends AppCompatActivity {
     public void onStartMonitor(View view)
     {
         RadioButton r1=(RadioButton)findViewById(R.id.radioButton);
-        if(sign==0);
+        if(sign==0)
         {
             r1.setText("Stop");
-            sign=1;
+            r1.setChecked(true);
+            sign = 1;
+            int notificationId = 001;
+            // Build intent for notification content
+            Intent viewIntent = new Intent(this, ViewEventActivity.class);
+            Intent intent = viewIntent.putExtra("test", 003);
+            PendingIntent viewPendingIntent =
+                    PendingIntent.getActivity(this, 0, viewIntent, 0);
+
+            NotificationCompat.Builder notificationBuilder =
+                    new NotificationCompat.Builder(this)
+                            .setSmallIcon(R.drawable.mr_ic_audio_vol)
+                            .setContentTitle("TestYuan")
+                            .setContentText("Showsomething")
+                            .setContentIntent(viewPendingIntent);
+             // Get an instance of the NotificationManager service
+            NotificationManagerCompat notificationManager =
+                    NotificationManagerCompat.from(this);
+
+             // Build the notification and issues it with notification manager.
+            notificationManager.notify(notificationId, notificationBuilder.build());
         }
-        else
+        else if(sign==1)
         {
             r1.setText("Start");
+            r1.setChecked(false);
             sign=0;
         }
     }
