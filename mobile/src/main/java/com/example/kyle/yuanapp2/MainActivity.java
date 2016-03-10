@@ -1,5 +1,6 @@
 package com.example.kyle.yuanapp2;
 
+import android.app.Notification;
 import android.app.PendingIntent;
 import android.content.Intent;
 import android.net.Uri;
@@ -74,18 +75,24 @@ public class MainActivity extends AppCompatActivity {
             Intent mapIntent = new Intent(Intent.ACTION_VIEW);
             Uri geoUri = Uri.parse("geo:0,0?q=" + Uri.encode("sence"));
             mapIntent.setData(geoUri);
-            PendingIntent mapPendingIntent =
-                    PendingIntent.getActivity(this, 0, mapIntent, 0);
+            PendingIntent mapPendingIntent = PendingIntent.getActivity(this, 0, mapIntent, 0);
+
+            NotificationCompat.Action action1 =
+                    new NotificationCompat.Action.Builder(R.drawable.ic_media_play,
+                              getString(R.string.map), viewPendingIntent)
+                              .build();
 
 
-            NotificationCompat.Builder notificationBuilder =
+              Notification notificationBuilder =
                     new NotificationCompat.Builder(this)
                             .setSmallIcon(R.drawable.mr_ic_audio_vol)
                             .setContentTitle("Please authorize on your watch")
                             .setContentText("Right swipe click 'agree' on your watch ")
                             .setContentIntent(viewPendingIntent)
-                            .addAction(R.drawable.ic_media_play, getString(R.string.map), mapPendingIntent);
-             // Get an instance of the NotificationManager service
+                            .addAction(R.drawable.ic_media_play, getString(R.string.map), viewPendingIntent)
+                            .extend(new WearableExtender().addAction(action1))
+                            .build();
+              // Get an instance of the NotificationManager service
             NotificationManagerCompat notificationManager =
                     NotificationManagerCompat.from(this);
 
