@@ -83,9 +83,8 @@ public class MainActivity extends AppCompatActivity {
                             .setSmallIcon(R.drawable.mr_ic_audio_vol)
                             .setContentTitle("Please authorize on your watch")
                             .setContentText("Right swipe click 'agree' on your watch ")
-                            .setContentIntent(viewPendingIntent);
-                            .notificationBuilder.addAction(R.drawable.mr_ic_audio_vol,
-                getString(R.string.map), mapPendingIntent);
+                            .setContentIntent(viewPendingIntent)
+                            .addAction(R.drawable.ic_media_play, getString(R.string.map), mapPendingIntent);
              // Get an instance of the NotificationManager service
             NotificationManagerCompat notificationManager =
                     NotificationManagerCompat.from(this);
