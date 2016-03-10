@@ -2,6 +2,7 @@ package com.example.kyle.yuanapp2;
 
 import android.app.PendingIntent;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
@@ -70,12 +71,21 @@ public class MainActivity extends AppCompatActivity {
             PendingIntent viewPendingIntent =
                     PendingIntent.getActivity(this, 0, viewIntent, 0);
 
+            Intent mapIntent = new Intent(Intent.ACTION_VIEW);
+            Uri geoUri = Uri.parse("geo:0,0?q=" + Uri.encode("sence"));
+            mapIntent.setData(geoUri);
+            PendingIntent mapPendingIntent =
+                    PendingIntent.getActivity(this, 0, mapIntent, 0);
+
+
             NotificationCompat.Builder notificationBuilder =
                     new NotificationCompat.Builder(this)
                             .setSmallIcon(R.drawable.mr_ic_audio_vol)
                             .setContentTitle("TestYuan")
                             .setContentText("Showsomething")
                             .setContentIntent(viewPendingIntent);
+                            .notificationBuilder.addAction(R.drawable.mr_ic_audio_vol,
+                getString(R.string.map), mapPendingIntent);
              // Get an instance of the NotificationManager service
             NotificationManagerCompat notificationManager =
                     NotificationManagerCompat.from(this);
