@@ -97,7 +97,7 @@ public class MainActivity extends AppCompatActivity {
                     NotificationManagerCompat.from(this);
 
               // Build the notification and issues it with notification manager.
-            notificationManager.notify(notificationId, notificationBuilder.build());
+            notificationManager.notify(notificationId, notificationBuilder);
         }
         else if(sign==1)
         {
