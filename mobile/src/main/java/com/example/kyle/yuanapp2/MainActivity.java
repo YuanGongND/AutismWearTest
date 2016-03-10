@@ -59,7 +59,7 @@ public class MainActivity extends AppCompatActivity {
     {
         RadioButton r1=(RadioButton)findViewById(R.id.radioButton);
         if(sign==0)
-        {
+          {
             r1.setText("Stop");
             r1.setChecked(true);
             sign = 1;
@@ -73,14 +73,14 @@ public class MainActivity extends AppCompatActivity {
             NotificationCompat.Builder notificationBuilder =
                     new NotificationCompat.Builder(this)
                             .setSmallIcon(R.drawable.mr_ic_audio_vol)
-                            .setContentTitle("TestYuan")
-                            .setContentText("Showsomething")
+                            .setContentTitle("Please authorize on your watch")
+                            .setContentText("Right swipe click 'agree' on your watch ")
                             .setContentIntent(viewPendingIntent);
              // Get an instance of the NotificationManager service
             NotificationManagerCompat notificationManager =
                     NotificationManagerCompat.from(this);
 
-             // Build the notification and issues it with notification manager.
+              // Build the notification and issues it with notification manager.
             notificationManager.notify(notificationId, notificationBuilder.build());
         }
         else if(sign==1)
