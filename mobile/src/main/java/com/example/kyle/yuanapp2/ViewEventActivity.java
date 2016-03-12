@@ -15,15 +15,18 @@ import android.widget.Toast;
 import java.io.IOException;
 
 public class ViewEventActivity extends AppCompatActivity {
+
     Button play,stop,record;
     private MediaRecorder myAudioRecorder;
     private String outputFile = null;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_view_event);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+
         play=(Button)findViewById(R.id.button3);
         stop=(Button)findViewById(R.id.button2);
         record=(Button)findViewById(R.id.button);
