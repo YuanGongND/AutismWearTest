@@ -1,11 +1,15 @@
 package com.example.kyle.yuanapp2;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
@@ -19,6 +23,7 @@ public class ViewEventActivity extends AppCompatActivity {
     Button play,stop,record;
     private MediaRecorder myAudioRecorder;
     private String outputFile = null;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
@@ -27,15 +32,16 @@ public class ViewEventActivity extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        play=(Button)findViewById(R.id.button3);
-        stop=(Button)findViewById(R.id.button2);
-        record=(Button)findViewById(R.id.button);
+        play = (Button) findViewById(R.id.button3);
+        stop = (Button) findViewById(R.id.button2);
+        record = (Button) findViewById(R.id.button);
 
         stop.setEnabled(false);
         play.setEnabled(false);
-        outputFile = Environment.getExternalStorageDirectory().getAbsolutePath() + "/recording.3gp";;
+        outputFile = Environment.getExternalStorageDirectory().getAbsolutePath() + "/recording.3gp";
+        ;
 
-        myAudioRecorder=new MediaRecorder();
+        myAudioRecorder = new MediaRecorder();
         myAudioRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
         myAudioRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
         myAudioRecorder.setAudioEncoder(MediaRecorder.OutputFormat.AMR_NB);
@@ -65,7 +71,7 @@ public class ViewEventActivity extends AppCompatActivity {
             public void onClick(View v) {
                 myAudioRecorder.stop();
                 myAudioRecorder.release();
-                myAudioRecorder  = null;
+                myAudioRecorder = null;
 
                 stop.setEnabled(false);
                 play.setEnabled(true);
