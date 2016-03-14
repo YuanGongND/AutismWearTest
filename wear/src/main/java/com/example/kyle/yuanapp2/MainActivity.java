@@ -1,6 +1,10 @@
 package com.example.kyle.yuanapp2;
 
 import android.app.Activity;
+import android.media.AudioFormat;
+import android.media.AudioManager;
+import android.media.AudioRecord;
+import android.media.AudioTrack;
 import android.media.MediaRecorder;
 import android.os.Bundle;
 import android.os.Environment;
@@ -10,70 +14,156 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 public class MainActivity extends Activity {
 
-    private TextView mTextView;
-    Button play,stop,record;
-    private MediaRecorder myAudioRecorder;
-    private String outputFile = null;
+    Button startRec, stopRec, playBack;
+    Boolean recording;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.round_activity_main);
+        startRec = (Button)findViewById(R.id.start);
+        stopRec = (Button)findViewById(R.id.stop);
+        playBack = (Button)findViewById(R.id.play);
 
-        play = (Button) findViewById(R.id.play);
-        stop = (Button) findViewById(R.id.stop);
-        record = (Button) findViewById(R.id.start);
+        startRec.setOnClickListener(startRecOnClickListener);
+        stopRec.setOnClickListener(stopRecOnClickListener);
+        playBack.setOnClickListener(playBackOnClickListener);
+    }
 
-        stop.setEnabled(false);
-        play.setEnabled(false);
-        outputFile = Environment.getExternalStorageDirectory().getAbsolutePath() + "/recording.3gp";
-        ;
+    View.OnClickListener startRecOnClickListener
+            = new View.OnClickListener(){
 
-        myAudioRecorder = new MediaRecorder();
-        myAudioRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-      //  myAudioRecorder.setOutputFormat(MediaRecorder.OutputFormat.AMR_WB);
-      //  myAudioRecorder.setAudioEncoder(MediaRecorder.OutputFormat.DEFAULT);
-        myAudioRecorder.setOutputFile(outputFile);
+        @Override
+        public void onClick(View arg0) {
 
-        record.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                try {
-                    myAudioRecorder.prepare();
-                    myAudioRecorder.start();
-                } catch (IllegalStateException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                } catch (IOException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
+            Thread recordThread = new Thread(new Runnable(){
+
+                @Override
+                public void run() {
+                    recording = true;
+                    startRecord();
                 }
-                record.setEnabled(false);
-                stop.setEnabled(true);
-                Toast.makeText(getApplicationContext(), "Recording started", Toast.LENGTH_LONG).show();
+
+            });
+
+            recordThread.start();
+
+        }};
+
+    View.OnClickListener stopRecOnClickListener
+            = new View.OnClickListener(){
+
+        @Override
+        public void onClick(View arg0) {
+            recording = false;
+        }};
+
+    View.OnClickListener playBackOnClickListener
+            = new View.OnClickListener(){
+
+        @Override
+        public void onClick(View v) {
+            playRecord();
+        }
+
+    };
+
+    private void startRecord(){
+
+        File file = new File(Environment.getExternalStorageDirectory(), "test.pcm");
+
+        try {
+            file.createNewFile();
+
+            OutputStream outputStream = new FileOutputStream(file);
+            BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(outputStream);
+            DataOutputStream dataOutputStream = new DataOutputStream(bufferedOutputStream);
+
+            int minBufferSize = AudioRecord.getMinBufferSize(11025,
+                    AudioFormat.CHANNEL_IN_DEFAULT,
+                    AudioFormat.ENCODING_PCM_16BIT);
+
+            short[] audioData = new short[minBufferSize];
+
+            AudioRecord audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC,
+                    11025,
+                    AudioFormat.CHANNEL_IN_DEFAULT,
+                    AudioFormat.ENCODING_PCM_16BIT,
+                    minBufferSize);
+
+            audioRecord.startRecording();
+
+            while(recording){
+                int numberOfShort = audioRecord.read(audioData, 0, minBufferSize);
+                for(int i = 0; i < numberOfShort; i++){
+                    dataOutputStream.writeShort(audioData[i]);
+                }
             }
-        });
 
-        stop.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                myAudioRecorder.stop();
-                myAudioRecorder.release();
-                myAudioRecorder = null;
+            audioRecord.stop();
+            dataOutputStream.close();
 
-                stop.setEnabled(false);
-                play.setEnabled(true);
-
-                Toast.makeText(getApplicationContext(), "Audio recorded successfully",Toast.LENGTH_LONG).show();
-            }
-        });
-
-
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
     }
+
+    void playRecord(){
+
+        File file = new File(Environment.getExternalStorageDirectory(), "test.pcm");
+
+        int shortSizeInBytes = Short.SIZE/Byte.SIZE;
+
+        int bufferSizeInBytes = (int)(file.length()/shortSizeInBytes);
+        short[] audioData = new short[bufferSizeInBytes];
+
+        try {
+            InputStream inputStream = new FileInputStream(file);
+            BufferedInputStream bufferedInputStream = new BufferedInputStream(inputStream);
+            DataInputStream dataInputStream = new DataInputStream(bufferedInputStream);
+
+            int i = 0;
+            while(dataInputStream.available() > 0){
+                audioData[i] = dataInputStream.readShort();
+                i++;
+            }
+
+            dataInputStream.close();
+
+            AudioTrack audioTrack = new AudioTrack(
+                    AudioManager.STREAM_MUSIC,
+                    11025,
+                    AudioFormat.CHANNEL_IN_DEFAULT,
+                    AudioFormat.ENCODING_PCM_16BIT,
+                    bufferSizeInBytes,
+                    AudioTrack.MODE_STREAM);
+
+            audioTrack.play();
+            audioTrack.write(audioData, 0, bufferSizeInBytes);
+
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
 }

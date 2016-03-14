@@ -13,6 +13,7 @@
         android:text="Start"
         android:textColor="#CC0000"
         android:id="@+id/start"
+        android:onClick="StartRecording"
         android:layout_above="@+id/stop"
         android:layout_centerHorizontal="true" />
 
