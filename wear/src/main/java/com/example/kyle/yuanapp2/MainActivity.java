@@ -85,7 +85,7 @@ public class MainActivity extends Activity {
 
     private void startRecord(){
 
-        File file = new File(Environment.getExternalStorageDirectory(), "test.pcm");
+        File file = new File(Environment.getExternalStorageDirectory(), "testyuan.pcm");
 
         try {
             file.createNewFile();
@@ -94,19 +94,25 @@ public class MainActivity extends Activity {
             BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(outputStream);
             DataOutputStream dataOutputStream = new DataOutputStream(bufferedOutputStream);
 
-            int minBufferSize = AudioRecord.getMinBufferSize(11025,
+            int minBufferSize = AudioRecord.getMinBufferSize(8000,
                     AudioFormat.CHANNEL_IN_DEFAULT,
                     AudioFormat.ENCODING_PCM_16BIT);
 
             short[] audioData = new short[minBufferSize];
 
             AudioRecord audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC,
-                    11025,
+                    8000,
                     AudioFormat.CHANNEL_IN_DEFAULT,
                     AudioFormat.ENCODING_PCM_16BIT,
                     minBufferSize);
 
             audioRecord.startRecording();
+
+            runOnUiThread(new Runnable() {
+                public void run() {
+                    Toast.makeText(getApplicationContext(), "record start ", Toast.LENGTH_SHORT).show();
+                }
+            });
 
             while(recording){
                 int numberOfShort = audioRecord.read(audioData, 0, minBufferSize);
@@ -116,6 +122,13 @@ public class MainActivity extends Activity {
             }
 
             audioRecord.stop();
+            audioRecord.release();
+            runOnUiThread(new Runnable() {
+                public void run() {
+                    Toast.makeText(getApplicationContext(), "stored in /storage/emulated/0/testyuan.pcm ", Toast.LENGTH_SHORT).show();
+                }
+            });
+
             dataOutputStream.close();
 
         } catch (IOException e) {
@@ -126,7 +139,7 @@ public class MainActivity extends Activity {
 
     void playRecord(){
 
-        File file = new File(Environment.getExternalStorageDirectory(), "test.pcm");
+        File file = new File(Environment.getExternalStorageDirectory(), "testyuan.pcm");
 
         int shortSizeInBytes = Short.SIZE/Byte.SIZE;
 
@@ -148,7 +161,7 @@ public class MainActivity extends Activity {
 
             AudioTrack audioTrack = new AudioTrack(
                     AudioManager.STREAM_MUSIC,
-                    11025,
+                    8000,
                     AudioFormat.CHANNEL_IN_DEFAULT,
                     AudioFormat.ENCODING_PCM_16BIT,
                     bufferSizeInBytes,
