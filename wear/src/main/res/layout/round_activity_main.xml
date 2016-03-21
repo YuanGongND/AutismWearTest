@@ -3,14 +3,35 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@drawable/loganlogo"
     tools:context="com.example.kyle.yuanapp2.MainActivity"
     tools:deviceIds="wear_round">
 
-    <TextView
-        android:id="@+id/text"
+    <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_centerHorizontal="true"
+        android:text="Start"
+        android:textColor="#CC0000"
+        android:id="@+id/start"
+        android:onClick="StartRecording"
+        android:layout_above="@+id/stop"
+        android:layout_centerHorizontal="true" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Stop"
+        android:textColor="#CC0000"
+        android:id="@+id/stop"
         android:layout_centerVertical="true"
-        android:text="@string/hello_round" />
+        android:layout_centerHorizontal="true" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Play"
+        android:textColor="#CC0000"
+        android:id="@+id/play"
+        android:layout_below="@+id/stop"
+        android:layout_alignStart="@+id/stop" />
 </RelativeLayout>
