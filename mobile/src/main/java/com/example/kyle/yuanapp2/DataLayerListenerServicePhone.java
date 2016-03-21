@@ -31,9 +31,9 @@ public class DataLayerListenerServicePhone extends WearableListenerService {
                 final DataMap map = DataMapItem
                         .fromDataItem(event.getDataItem()).getDataMap();
                 // read your values from map:
-                float X = map.getFloat("touchX");
-                float Y = map.getFloat("touchY");
-                String reply = "Touched X=" + X + ", Y=" + Y;
+                Long X = map.getLong("touchX");
+                Long Y = map.getLong("touchY");
+                String reply = "Voice Activity=" + X + ", Heart Rate=" + Y;
                 Log.v("yuan-mobile", reply);
                 Intent localIntent = new Intent("phone.localIntent");
                 localIntent.putExtra("result", reply);

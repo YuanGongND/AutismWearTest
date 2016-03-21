@@ -49,8 +49,8 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
     Boolean recording;
     private GoogleApiClient mGoogleApiClient;
     BroadcastReceiver mResultReceiver;
-    float sum = 0;
-    float ym;
+    long sum = 0;
+    long hrt=0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -95,7 +95,7 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
                 mResultReceiver,
                 new IntentFilter("wearable.localIntent"));
 
-        testwear2mobile(ym);
+        testwear2mobile(hrt);
 
 
         bindService(new Intent(MainActivity.this, HeartbeatService.class), new ServiceConnection() {
@@ -137,7 +137,7 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
         @Override
         public void onClick(View arg0) {
             recording = false;
-            ym=0;
+            hrt=0;
             sum=0;
         }};
 
@@ -151,16 +151,16 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
 
     };
 
-    public void testwear2mobile(float xm)
+    public void testwear2mobile(long xm)
     {
     //    float xm = (float) (255 * Math.random());
-        if (ym<xm)
-        {ym=xm;}
+       // if (ym<xm)
+       // {ym=xm;}
         final PutDataMapRequest putRequest =
                 PutDataMapRequest.create("/WEAR2PHONE");
         final DataMap map = putRequest.getDataMap();
-        map.putFloat("touchX", xm);
-        map.putFloat("touchY", ym);
+        map.putLong("touchX", xm);
+        map.putLong("touchY", hrt);
         Wearable.DataApi.putDataItem(mGoogleApiClient,
                 putRequest.asPutDataRequest());
         Log.v("yuan-wear", "information sent");
@@ -201,8 +201,10 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
                 int numberOfShort = audioRecord.read(audioData, 0, minBufferSize);
                 for(int i = 0; i < numberOfShort; i++){
                     dataOutputStream.writeShort(audioData[i]);
-                    sum += audioData[i] * audioData[i];
+                    //sum += Math.abs(audioData[i]);
+                    sum += audioData[i]*audioData[i];
                 }
+                sum=(long)sum/numberOfShort;
                 testwear2mobile(sum);
                 sum=0;
             }
@@ -277,6 +279,7 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
     public void onValueChanged(int newValue) {
         // will be called by the service whenever the heartbeat value changes.
         mText.setText(Integer.toString(newValue));
+        hrt=(long)newValue;
     }
 
 }
