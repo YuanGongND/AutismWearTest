@@ -8,6 +8,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioRecord;
@@ -42,15 +46,21 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-public class MainActivity extends Activity implements HeartbeatService.OnChangeListener{
+public class MainActivity extends Activity implements HeartbeatService.OnChangeListener,SensorEventListener {
 
     Button startRec, stopRec, playBack;
     TextView mText;
     Boolean recording;
     private GoogleApiClient mGoogleApiClient;
     BroadcastReceiver mResultReceiver;
+    private SensorManager senSensorManager;
+    private Sensor senAccelerometer;
+    private long lastUpdate;
+    private float last_x, last_y, last_z;
+    private static final int SHAKE_THRESHOLD = 1000;
     long sum = 0;
     long hrt=0;
+    float speed=0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,7 +70,12 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
         stopRec = (Button)findViewById(R.id.stop);
         playBack = (Button)findViewById(R.id.play);
         mText=(TextView)findViewById(R.id.heartrate);
-        Log.v("yuan-test", "wear startes ");
+        Log.v("yuan-wear", "wear started");
+
+        senSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        senAccelerometer = senSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        senSensorManager.registerListener(this, senAccelerometer , SensorManager.SENSOR_DELAY_NORMAL);
+        Log.v("yuan-wear","acelerometer started");
 
         startRec.setOnClickListener(startRecOnClickListener);
         stopRec.setOnClickListener(stopRecOnClickListener);
@@ -161,6 +176,7 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
         final DataMap map = putRequest.getDataMap();
         map.putLong("touchX", xm);
         map.putLong("touchY", hrt);
+        map.putFloat("speed",speed);
         Wearable.DataApi.putDataItem(mGoogleApiClient,
                 putRequest.asPutDataRequest());
         Log.v("yuan-wear", "information sent");
@@ -282,4 +298,37 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
         hrt=(long)newValue;
     }
 
+    @Override
+    public void onSensorChanged(SensorEvent sensorEvent) {
+
+        Sensor mySensor = sensorEvent.sensor;
+
+        if (mySensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+            float x = sensorEvent.values[0];
+            float y = sensorEvent.values[1];
+            float z = sensorEvent.values[2];
+
+            long curTime = System.currentTimeMillis();
+            // only allow one update every 100ms.
+            if ((curTime - lastUpdate) > 100) {
+                long diffTime = (curTime - lastUpdate);
+                lastUpdate = curTime;
+
+                speed = Math.abs(x + y + z - last_x - last_y - last_z) / diffTime * 10000;
+
+                if (speed > SHAKE_THRESHOLD) {
+                    Toast.makeText(this, "shake detected w/ speed: " + speed, Toast.LENGTH_SHORT).show();
+                }
+                last_x = x;
+                last_y = y;
+                last_z = z;
+            }
+
+        }
+    }
+
+    @Override
+        public void onAccuracyChanged(Sensor sensor, int accuracy) {
+            // can be safely ignored for this demo
+        }
 }

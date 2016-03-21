@@ -126,16 +126,26 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    private void updateTextField(String text) {
+    private void updateTextFieldvad(String text) {
         Log.v("yuan-mobile", "Arrived text:" + text);
         ((TextView)findViewById(R.id.reply_text)).setText(text);
+    }
+    private void updateTextFieldhrt(String text) {
+        Log.v("yuan-mobile", "Arrived text:" + text);
+        ((TextView)findViewById(R.id.hrt_text)).setText(text);
+    }
+    private void updateTextFieldspd(String text) {
+        Log.v("yuan-mobile", "Arrived text:" + text);
+        ((TextView)findViewById(R.id.spd_text)).setText(text);
     }
 
     private BroadcastReceiver createBroadcastReceiver() {
         return new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                updateTextField(intent.getStringExtra("result"));
+                updateTextFieldvad(intent.getStringExtra("vad"));
+                updateTextFieldhrt(intent.getStringExtra("hrt"));
+                updateTextFieldspd(intent.getStringExtra("spd"));
             }
         };
     }

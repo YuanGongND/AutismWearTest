@@ -33,10 +33,16 @@ public class DataLayerListenerServicePhone extends WearableListenerService {
                 // read your values from map:
                 Long X = map.getLong("touchX");
                 Long Y = map.getLong("touchY");
-                String reply = "Voice Activity=" + X + ", Heart Rate=" + Y;
+                float speed=map.getFloat("speed");
+    //            String reply = "Voice Activity=" +X+", Heart Rate=  " + Y+",Speed="+speed;
+                String reply="Voice Activity=" +X;
+                String hrt="Heart Rate="+Y;
+                String spd="Speed="+speed;
                 Log.v("yuan-mobile", reply);
                 Intent localIntent = new Intent("phone.localIntent");
-                localIntent.putExtra("result", reply);
+                localIntent.putExtra("vad", reply);
+                localIntent.putExtra("hrt", hrt);
+                localIntent.putExtra("spd", spd);
                 LocalBroadcastManager.getInstance(this)
                         .sendBroadcast(localIntent);
             }
