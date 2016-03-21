@@ -32,6 +32,6 @@
         android:text="Play"
         android:textColor="#CC0000"
         android:id="@+id/play"
-        android:layout_below="@+id/stop"
+        android:layout_alignParentBottom="true"
         android:layout_alignStart="@+id/stop" />
 </RelativeLayout>

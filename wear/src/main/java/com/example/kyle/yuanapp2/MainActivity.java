@@ -1,6 +1,10 @@
 package com.example.kyle.yuanapp2;
 
 import android.app.Activity;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioRecord;
@@ -8,11 +12,19 @@ import android.media.AudioTrack;
 import android.media.MediaRecorder;
 import android.os.Bundle;
 import android.os.Environment;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.wearable.view.WatchViewStub;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.wearable.DataMap;
+import com.google.android.gms.wearable.PutDataMapRequest;
+import com.google.android.gms.wearable.Wearable;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -30,7 +42,8 @@ public class MainActivity extends Activity {
 
     Button startRec, stopRec, playBack;
     Boolean recording;
-
+    private GoogleApiClient mGoogleApiClient;
+    BroadcastReceiver mResultReceiver;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,10 +52,42 @@ public class MainActivity extends Activity {
         startRec = (Button)findViewById(R.id.start);
         stopRec = (Button)findViewById(R.id.stop);
         playBack = (Button)findViewById(R.id.play);
+        Log.v("yuan-test", "wear startes " );
 
         startRec.setOnClickListener(startRecOnClickListener);
         stopRec.setOnClickListener(stopRecOnClickListener);
         playBack.setOnClickListener(playBackOnClickListener);
+
+
+        mGoogleApiClient = new GoogleApiClient.Builder(this)
+                .addConnectionCallbacks(new GoogleApiClient
+                        .ConnectionCallbacks() {
+                    @Override
+                    public void onConnected(Bundle connectionHint) {
+                        Log.v("yuan-wear", "Connection established");
+                    }
+                    @Override
+                    public void onConnectionSuspended(int cause) {
+                        Log.v("yuan-wear", "Connection suspended");
+                    }
+                })
+                .addOnConnectionFailedListener(new GoogleApiClient
+                        .OnConnectionFailedListener() {
+                    @Override
+                    public void onConnectionFailed(ConnectionResult result) {
+                        Log.v("yuan-wear", "Connection failed");
+                    }
+                })
+                .addApi(Wearable.API)
+                .build();
+        mGoogleApiClient.connect();
+
+        mResultReceiver = createBroadcastReceiver();
+        LocalBroadcastManager.getInstance(this).registerReceiver(
+                mResultReceiver,
+                new IntentFilter("wearable.localIntent"));
+
+       // testwear2mobile();
     }
 
     View.OnClickListener startRecOnClickListener
@@ -60,8 +105,10 @@ public class MainActivity extends Activity {
                 }
 
             });
-
+            testwear2mobile();
+            Toast.makeText(getApplicationContext(), "information sent ", Toast.LENGTH_SHORT).show();
             recordThread.start();
+
 
         }};
 
@@ -82,6 +129,20 @@ public class MainActivity extends Activity {
         }
 
     };
+
+    public void testwear2mobile()
+    {
+        float xm = (float) (255 * Math.random());
+        float ym = (float) (255 * Math.random());
+        final PutDataMapRequest putRequest =
+                PutDataMapRequest.create("/WEAR2PHONE");
+        final DataMap map = putRequest.getDataMap();
+        map.putFloat("touchX", xm);
+        map.putFloat("touchY", ym);
+        Wearable.DataApi.putDataItem(mGoogleApiClient,
+                putRequest.asPutDataRequest());
+        Log.v("yuan-wear", "information sent");
+    }
 
     private void startRecord(){
 
@@ -176,6 +237,16 @@ public class MainActivity extends Activity {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private BroadcastReceiver createBroadcastReceiver() {
+        return new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                //setBackgroundColor(Integer.parseInt
+                  //      (intent.getStringExtra("result")));
+            }
+        };
     }
 
 
