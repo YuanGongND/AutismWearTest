@@ -6,6 +6,7 @@
 
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.BODY_SENSORS" />
 
     <application
         android:allowBackup="true"
@@ -31,14 +32,15 @@
             android:name="com.google.android.gms.version"
             android:value="@integer/google_play_services_version" />
 
-        <service
-            android:name=".DataLayerListenerServiceWear">
+        <service android:name=".DataLayerListenerServiceWear">
             <intent-filter>
-                <action android:name=
-                    "com.google.android.gms.wearable.BIND_LISTENER" />
+                <action android:name="com.google.android.gms.wearable.BIND_LISTENER" />
             </intent-filter>
-
         </service>
+        <service
+            android:name=".HeartbeatService"
+            android:enabled="true"
+            android:exported="true"></service>
     </application>
 
 </manifest>

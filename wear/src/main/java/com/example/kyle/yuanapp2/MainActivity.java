@@ -1,10 +1,13 @@
 package com.example.kyle.yuanapp2;
 
 import android.app.Activity;
+import android.app.Service;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioRecord;
@@ -12,6 +15,7 @@ import android.media.AudioTrack;
 import android.media.MediaRecorder;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.IBinder;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.wearable.view.WatchViewStub;
 import android.util.Log;
@@ -38,12 +42,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-public class MainActivity extends Activity {
+public class MainActivity extends Activity implements HeartbeatService.OnChangeListener{
 
     Button startRec, stopRec, playBack;
+    TextView mText;
     Boolean recording;
     private GoogleApiClient mGoogleApiClient;
     BroadcastReceiver mResultReceiver;
+    float sum = 0;
+    float ym;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,7 +59,8 @@ public class MainActivity extends Activity {
         startRec = (Button)findViewById(R.id.start);
         stopRec = (Button)findViewById(R.id.stop);
         playBack = (Button)findViewById(R.id.play);
-        Log.v("yuan-test", "wear startes " );
+        mText=(TextView)findViewById(R.id.heartrate);
+        Log.v("yuan-test", "wear startes ");
 
         startRec.setOnClickListener(startRecOnClickListener);
         stopRec.setOnClickListener(stopRecOnClickListener);
@@ -87,7 +95,18 @@ public class MainActivity extends Activity {
                 mResultReceiver,
                 new IntentFilter("wearable.localIntent"));
 
-       // testwear2mobile();
+        testwear2mobile(ym);
+
+
+        bindService(new Intent(MainActivity.this, HeartbeatService.class), new ServiceConnection() {
+                    @Override
+                    public void onServiceConnected(ComponentName componentName, IBinder binder) {
+                        Log.d("yuan-wear", "connected to service.");
+                        // set our change listener to get change events
+                        ((HeartbeatService.HeartbeatServiceBinder)binder).setChangeListener(MainActivity.this);
+                    }
+                    public void onServiceDisconnected(ComponentName componentName) {}
+        }, Service.BIND_AUTO_CREATE);
     }
 
     View.OnClickListener startRecOnClickListener
@@ -105,7 +124,7 @@ public class MainActivity extends Activity {
                 }
 
             });
-            testwear2mobile();
+            testwear2mobile(sum);
             Toast.makeText(getApplicationContext(), "information sent ", Toast.LENGTH_SHORT).show();
             recordThread.start();
 
@@ -118,6 +137,8 @@ public class MainActivity extends Activity {
         @Override
         public void onClick(View arg0) {
             recording = false;
+            ym=0;
+            sum=0;
         }};
 
     View.OnClickListener playBackOnClickListener
@@ -130,10 +151,11 @@ public class MainActivity extends Activity {
 
     };
 
-    public void testwear2mobile()
+    public void testwear2mobile(float xm)
     {
-        float xm = (float) (255 * Math.random());
-        float ym = (float) (255 * Math.random());
+    //    float xm = (float) (255 * Math.random());
+        if (ym<xm)
+        {ym=xm;}
         final PutDataMapRequest putRequest =
                 PutDataMapRequest.create("/WEAR2PHONE");
         final DataMap map = putRequest.getDataMap();
@@ -179,7 +201,10 @@ public class MainActivity extends Activity {
                 int numberOfShort = audioRecord.read(audioData, 0, minBufferSize);
                 for(int i = 0; i < numberOfShort; i++){
                     dataOutputStream.writeShort(audioData[i]);
+                    sum += audioData[i] * audioData[i];
                 }
+                testwear2mobile(sum);
+                sum=0;
             }
 
             audioRecord.stop();
@@ -249,5 +274,9 @@ public class MainActivity extends Activity {
         };
     }
 
+    public void onValueChanged(int newValue) {
+        // will be called by the service whenever the heartbeat value changes.
+        mText.setText(Integer.toString(newValue));
+    }
 
 }
