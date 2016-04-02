@@ -6,6 +6,8 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
@@ -39,6 +41,8 @@ public class MainActivity extends AppCompatActivity {
     private BroadcastReceiver mResultReceiver;
     private GoogleApiClient mGoogleApiClient;
     private int mColorCount = 0;
+    private TimeListDatabaseHelper databaseHelper;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -83,6 +87,8 @@ public class MainActivity extends AppCompatActivity {
                 new IntentFilter("phone.localIntent"));
 
         sendTextToWear();
+           databaseHelper=new TimeListDatabaseHelper(this);
+//        TimeTrackerOpenHelper openHelper=new TimeTrackerOpenHelper(this);
     }
 
     @Override
@@ -146,6 +152,7 @@ public class MainActivity extends AppCompatActivity {
                 updateTextFieldvad(intent.getStringExtra("vad"));
                 updateTextFieldhrt(intent.getStringExtra("hrt"));
                 updateTextFieldspd(intent.getStringExtra("spd"));
+                databaseHelper.saveTimeRecord(intent.getLongExtra("vadvalue", 0),intent.getLongExtra("hrtvalue",0));
             }
         };
     }
@@ -201,3 +208,22 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

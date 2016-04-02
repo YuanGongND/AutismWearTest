@@ -43,6 +43,10 @@ public class DataLayerListenerServicePhone extends WearableListenerService {
                 localIntent.putExtra("vad", reply);
                 localIntent.putExtra("hrt", hrt);
                 localIntent.putExtra("spd", spd);
+                localIntent.putExtra("vadvalue",X);
+                localIntent.putExtra("hrtvalue",Y);
+                localIntent.putExtra("speedvalue",speed);
+
                 LocalBroadcastManager.getInstance(this)
                         .sendBroadcast(localIntent);
             }
