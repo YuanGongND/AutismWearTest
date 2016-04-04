@@ -13,6 +13,7 @@
         android:text="Start"
         android:textColor="#CC0000"
         android:id="@+id/start"
+        android:clickable="true"
         android:onClick="StartRecording"
         android:layout_above="@+id/stop"
         android:layout_centerHorizontal="true" />
@@ -21,6 +22,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Stop"
+        android:clickable="false"
         android:textColor="#CC0000"
         android:id="@+id/stop"
         android:layout_centerVertical="true"

@@ -61,6 +61,8 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
     long sum = 0;
     long hrt=0;
     float speed=0;
+    ServiceConnection hrtt;
+    Intent hrtintent;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,7 +77,7 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
         senSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         senAccelerometer = senSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         senSensorManager.registerListener(this, senAccelerometer , SensorManager.SENSOR_DELAY_NORMAL);
-        Log.v("yuan-wear","acelerometer started");
+        Log.v("yuan-wear", "acelerometer started");
 
         startRec.setOnClickListener(startRecOnClickListener);
         stopRec.setOnClickListener(stopRecOnClickListener);
@@ -112,16 +114,21 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
 
         testwear2mobile(hrt);
 
-
-        bindService(new Intent(MainActivity.this, HeartbeatService.class), new ServiceConnection() {
-                    @Override
-                    public void onServiceConnected(ComponentName componentName, IBinder binder) {
-                        Log.d("yuan-wear", "connected to service.");
-                        // set our change listener to get change events
-                        ((HeartbeatService.HeartbeatServiceBinder)binder).setChangeListener(MainActivity.this);
-                    }
-                    public void onServiceDisconnected(ComponentName componentName) {}
-        }, Service.BIND_AUTO_CREATE);
+    //    Intent hrtintent = new Intent(this, HeartbeatService.class);
+    //    startService(hrtintent);
+        hrtt=new ServiceConnection()
+        {
+            @Override
+            public void onServiceConnected(ComponentName componentName, IBinder binder) {
+                Log.d("yuan-wear", "connected to service.");
+                // set our change listener to get change events
+                ((HeartbeatService.HeartbeatServiceBinder)binder).setChangeListener(MainActivity.this);
+            }
+            public void onServiceDisconnected(ComponentName componentName) {}
+        };
+        hrtintent=new Intent(MainActivity.this, HeartbeatService.class);
+        //bindService(hrtintent,hrtt, Service.BIND_AUTO_CREATE);
+       // this.unbindService(hrtt);
     }
 
     View.OnClickListener startRecOnClickListener
@@ -129,7 +136,8 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
 
         @Override
         public void onClick(View arg0) {
-
+            startRec.setClickable(false);
+            stopRec.setClickable(true);
             Thread recordThread = new Thread(new Runnable(){
 
                 @Override
@@ -151,9 +159,17 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
 
         @Override
         public void onClick(View arg0) {
+            startRec.setClickable(true);
+            stopRec.setClickable(false);
             recording = false;
             hrt=0;
             sum=0;
+            stophrt();
+            Log.d("yuan-wear", "plan to stop heart rate service.");
+           //MainActivity.this.unbindService(hrtt);
+
+            //startService(hrtintent);
+            //stopService(HeartbeatService.class);
         }};
 
     View.OnClickListener playBackOnClickListener
@@ -166,6 +182,13 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
 
     };
 
+    public void stophrt()
+    {
+        this.unbindService(hrtt);
+        this.stopService(hrtintent);
+        Log.d("yuan-wear", "stop heart rate service.");
+    }
+
     public void testwear2mobile(long xm)
     {
     //    float xm = (float) (255 * Math.random());
@@ -176,7 +199,10 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
         final DataMap map = putRequest.getDataMap();
         map.putLong("touchX", xm);
         map.putLong("touchY", hrt);
-        map.putFloat("speed",speed);
+        map.putFloat("speed", speed);
+        map.putFloat("acx",last_x);
+        map.putFloat("acy",last_y);
+        map.putFloat("acz",last_z);
         Wearable.DataApi.putDataItem(mGoogleApiClient,
                 putRequest.asPutDataRequest());
         Log.v("yuan-wear", "information sent");
@@ -184,6 +210,8 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
 
     private void startRecord(){
 
+        bindService(hrtintent,hrtt, Service.BIND_AUTO_CREATE);
+        Log.v("yuan-wear", "service rebinded");
         File file = new File(Environment.getExternalStorageDirectory(), "testyuan.pcm");
 
         try {

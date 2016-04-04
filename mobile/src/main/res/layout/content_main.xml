@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<AbsoluteLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -15,7 +15,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="This Ap  p is collecting information through your Android Wear device. Information may includes voice activity(no recording),speech recording,gesture,heart rate and etc"
+        android:text="This App is collecting information through your Android Wear device. Information may includes voice activity(no recording),speech recording,gesture,heart rate and etc"
         android:id="@+id/textView" />
 
     <CheckBox
@@ -23,40 +23,56 @@
         android:layout_height="wrap_content"
         android:text="voice activity"
         android:id="@+id/checkBox"
-        android:layout_marginTop="30dp"
-        android:layout_below="@+id/textView"
+        android:checked="true"
         android:layout_alignParentStart="true"
-        android:checked="false" />
+        android:layout_below="@+id/checkBox2"
+        android:layout_alignParentLeft="true"
+        android:layout_x="0dp"
+        android:layout_y="410dp" />
 
     <CheckBox
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="speech recording"
         android:id="@+id/checkBox2"
-        android:layout_marginTop="22dp"
-        android:layout_below="@+id/checkBox"
-        android:layout_alignParentStart="true"
-        android:checked="false" />
+        android:checked="true"
+        android:layout_below="@+id/checkBox4"
+        android:layout_alignParentLeft="true"
+        android:layout_x="120dp"
+        android:layout_y="410dp" />
 
     <CheckBox
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="gesture"
         android:id="@+id/checkBox3"
-        android:layout_marginTop="20dp"
-        android:checked="false"
-        android:layout_below="@+id/checkBox2"
-        android:layout_alignParentStart="true" />
+        android:checked="true"
+        android:layout_below="@+id/checkBox5"
+        android:layout_alignParentLeft="true"
+        android:layout_x="270dp"
+        android:layout_y="410dp" />
 
     <CheckBox
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="heart rate"
         android:id="@+id/checkBox4"
-        android:layout_marginTop="21dp"
+        android:checked="true"
         android:layout_below="@+id/checkBox3"
-        android:layout_alignParentStart="true"
-        android:checked="false" />
+        android:layout_alignParentLeft="true"
+        android:layout_x="360dp"
+        android:layout_y="410dp" />
+
+    <CheckBox
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Location"
+        android:id="@+id/checkBox5"
+        android:checked="false"
+        android:layout_below="@+id/button5"
+        android:layout_alignParentLeft="true"
+        android:layout_x="460dp"
+        android:layout_y="410dp" />
 
     <RadioButton
         android:layout_width="wrap_content"
@@ -64,56 +80,122 @@
         android:text="@string/button_name"
         android:id="@+id/radioButton"
         android:onClick="onStartMonitor"
-        android:layout_marginTop="66dp"
-        android:layout_below="@+id/checkBox4"
-        android:layout_alignParentStart="true" />
+        android:checked="false"
+        android:visibility="invisible"
+        android:layout_marginTop="136dp"
+        android:layout_below="@+id/checkBox"
+        android:layout_alignParentStart="true"
+        android:layout_x="209dp"
+        android:layout_y="600dp" />
 
-    <TextView
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:textAppearance="?android:attr/textAppearanceSmall"
-        android:text="Null"
-        android:id="@+id/reply_text"
-        android:textStyle="bold"
-        android:textSize="48sp"
-        android:visibility="visible"
-        android:layout_marginTop="38dp"
-        android:layout_below="@+id/radioButton"
-        android:layout_alignParentEnd="true"
-        android:layout_alignParentStart="true" />
-
-    <CheckBox
+    <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Location"
-        android:id="@+id/checkBox5"
-        android:layout_marginTop="19dp"
-        android:checked="false"
-        android:layout_below="@+id/checkBox4"
-        android:layout_alignParentStart="true" />
+        android:text="Start Record"
+        android:id="@+id/startdatabase"
+        android:layout_above="@+id/checkBox"
+        android:layout_alignEnd="@+id/button5"
+        android:layout_x="0dp"
+        android:layout_y="480dp" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Stop Record"
+        android:enabled="false"
+        android:id="@+id/stopdatabase"
+        android:layout_alignBaseline="@+id/startdatabase"
+        android:layout_alignBottom="@+id/startdatabase"
+        android:layout_toEndOf="@+id/startdatabase"
+        android:layout_x="160dp"
+        android:layout_y="480dp" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Apply Setting"
+        android:id="@+id/button5"
+        android:layout_below="@+id/a_z"
+        android:layout_alignParentStart="true"
+        android:layout_marginTop="36dp"
+        android:layout_x="320dp"
+        android:layout_y="480dp" />
 
     <TextView
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceSmall"
-        android:text="Null"
+        android:text="VAD"
+        android:id="@+id/vad"
+        android:textStyle="bold"
+        android:textSize="36sp"
+        android:visibility="visible"
+        android:layout_below="@+id/textView"
+        android:layout_alignParentStart="true"
+        android:layout_marginTop="29dp"
+        android:layout_x="0dp"
+        android:layout_y="107dp" />
+
+    <TextView
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:text="Heart Rate"
         android:id="@+id/hrt_text"
         android:textStyle="bold"
-        android:textSize="48sp"
+        android:textSize="36sp"
         android:visibility="visible"
-        android:layout_below="@+id/reply_text"
-        android:layout_alignParentStart="true" />
+        android:layout_x="0dp"
+        android:layout_y="52dp" />
+
+    <TextView
+        android:layout_width="364dp"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:text="Speed"
+        android:id="@+id/spd_text"
+        android:textStyle="bold"
+        android:textSize="36sp"
+        android:visibility="visible"
+        android:layout_x="2dp"
+        android:layout_y="165dp" />
 
     <TextView
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceSmall"
-        android:text="Null"
-        android:id="@+id/spd_text"
+        android:text="A-X"
+        android:id="@+id/a_x"
         android:textStyle="bold"
-        android:textSize="48sp"
+        android:textSize="36sp"
         android:visibility="visible"
-        android:layout_below="@+id/hrt_text"
-        android:layout_alignParentStart="true" />
+        android:layout_x="2dp"
+        android:layout_y="223dp" />
 
-</RelativeLayout>
+    <TextView
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:text="A-Y"
+        android:id="@+id/a_y"
+        android:textStyle="bold"
+        android:textSize="36sp"
+        android:visibility="visible"
+        android:layout_below="@+id/a_x"
+        android:layout_alignParentStart="true"
+        android:layout_x="2dp"
+        android:layout_y="274dp" />
+
+    <TextView
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:text="A-Z"
+        android:id="@+id/a_z"
+        android:textStyle="bold"
+        android:textSize="36sp"
+        android:layout_marginTop="105dp"
+        android:layout_x="2dp"
+        android:layout_y="326dp" />
+
+</AbsoluteLayout>

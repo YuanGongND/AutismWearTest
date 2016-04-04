@@ -72,6 +72,14 @@ public class HeartbeatService extends Service implements SensorEventListener {
         // delay SENSOR_DELAY_UI is sufficiant
         boolean res = mSensorManager.registerListener(this, mHeartRateSensor,  SensorManager.SENSOR_DELAY_UI);
         Log.d(LOG_TAG, " sensor registered: " + (res ? "yes" : "no"));
+
+
+    }
+
+    public void onDestroy()
+    {
+        Log.v("yuan-wear", "stop has called ondestroy");
+        mSensorManager.unregisterListener(this);
     }
 
     @Override

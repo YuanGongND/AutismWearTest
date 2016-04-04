@@ -23,8 +23,10 @@ import android.view.MenuItem;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.app.NotificationCompat.WearableExtender;
+import android.widget.Button;
 import android.widget.RadioButton;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -35,13 +37,23 @@ import com.google.android.gms.wearable.PutDataMapRequest;
 import com.google.android.gms.wearable.PutDataRequest;
 import com.google.android.gms.wearable.Wearable;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+
 public class MainActivity extends AppCompatActivity {
 
     public static int sign=0;
+    public String databasename,timetemp,pathtemp,outpathtemp;
+    Boolean databaserecording=false;
     private BroadcastReceiver mResultReceiver;
     private GoogleApiClient mGoogleApiClient;
     private int mColorCount = 0;
     private TimeListDatabaseHelper databaseHelper;
+    Button dstart,dstop;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,6 +71,10 @@ public class MainActivity extends AppCompatActivity {
         });
        // Intent sint=new Intent(MainActivity.this, DataLayerListenerServicePhone.class);
        // startService(sint);
+        dstart = (Button)findViewById(R.id.startdatabase);
+        dstop = (Button)findViewById(R.id.stopdatabase);
+        dstart.setOnClickListener(dstartOnClickListener);
+        dstop.setOnClickListener(dstopOnClickListener);
 
         mGoogleApiClient = new GoogleApiClient.Builder(this)
                 .addConnectionCallbacks(new GoogleApiClient.ConnectionCallbacks() {
@@ -87,8 +103,83 @@ public class MainActivity extends AppCompatActivity {
                 new IntentFilter("phone.localIntent"));
 
         sendTextToWear();
-           databaseHelper=new TimeListDatabaseHelper(this);
+        //databaseHelper=new TimeListDatabaseHelper(this);
 //        TimeTrackerOpenHelper openHelper=new TimeTrackerOpenHelper(this);
+    }
+
+    View.OnClickListener dstartOnClickListener
+            = new View.OnClickListener(){
+        @Override
+        public void onClick(View arg0) {
+            dstart.setEnabled(false);
+            dstop.setEnabled(true);
+            databaserecording =true;
+            creatdatabase();
+            Log.d("yuan-wear", "Created the database and start to record data");
+            Toast.makeText(getApplicationContext(), "database created", Toast.LENGTH_SHORT).show();
+        }};
+
+    View.OnClickListener dstopOnClickListener
+            = new View.OnClickListener(){
+        @Override
+        public void onClick(View arg0) {
+            dstart.setEnabled(true);
+            dstop.setEnabled(false);
+            databaserecording =false;
+            writedatabase();
+            //databaseHelper=new TimeListDatabaseHelper(MainActivity.this);
+            Log.d("yuan-wear", "database saved");
+            Toast.makeText(getApplicationContext(), "database saved", Toast.LENGTH_SHORT).show();
+        }};
+
+    public void creatdatabase()
+    {
+        SimpleDateFormat sdf=new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        java.util.Date date=new java.util.Date();
+        timetemp=sdf.format(date);
+        databasename=timetemp+".db";
+        databaseHelper=new TimeListDatabaseHelper(MainActivity.this,databasename);
+    }
+
+    public void writedatabase()
+    {
+        pathtemp="/data/data/com.example.kyle.yuanapp2/databases/"+databasename;
+        outpathtemp="/mnt/sdcard/yuan/"+databasename;
+        File f=new File(pathtemp);
+        File fo=new File(outpathtemp);
+        FileInputStream fis=null;
+        FileOutputStream fos=null;
+
+        try
+        {
+            fis=new FileInputStream(f);
+            fos=new FileOutputStream(fo);
+            while(true)
+            {
+                int i=fis.read();
+                if(i!=-1)
+                {fos.write(i);}
+                else
+                {break;}
+            }
+            fos.flush();
+            Toast.makeText(this, "Database saved to sdcard successfully", Toast.LENGTH_LONG).show();
+        }
+        catch(Exception e)
+        {
+            e.printStackTrace();
+            Toast.makeText(this, "DB dump ERROR", Toast.LENGTH_LONG).show();
+        }
+        finally
+        {
+            try
+            {
+                fos.close();
+                fis.close();
+            }
+            catch(IOException ioe)
+            {}
+        }
     }
 
     @Override
@@ -134,7 +225,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void updateTextFieldvad(String text) {
         Log.v("yuan-mobile", "Arrived text:" + text);
-        ((TextView)findViewById(R.id.reply_text)).setText(text);
+        ((TextView)findViewById(R.id.vad)).setText(text);
     }
     private void updateTextFieldhrt(String text) {
         Log.v("yuan-mobile", "Arrived text:" + text);
@@ -145,6 +236,21 @@ public class MainActivity extends AppCompatActivity {
         ((TextView)findViewById(R.id.spd_text)).setText(text);
     }
 
+    private void updateTextFieldax(String text) {
+        Log.v("yuan-mobile", "Arrived text:" + text);
+        ((TextView)findViewById(R.id.a_x)).setText(text);
+    }
+
+    private void updateTextFielday(String text) {
+        Log.v("yuan-mobile", "Arrived text:" + text);
+        ((TextView)findViewById(R.id.a_y)).setText(text);
+    }
+
+    private void updateTextFieldaz(String text) {
+        Log.v("yuan-mobile", "Arrived text:" + text);
+        ((TextView)findViewById(R.id.a_z)).setText(text);
+    }
+
     private BroadcastReceiver createBroadcastReceiver() {
         return new BroadcastReceiver() {
             @Override
@@ -152,7 +258,15 @@ public class MainActivity extends AppCompatActivity {
                 updateTextFieldvad(intent.getStringExtra("vad"));
                 updateTextFieldhrt(intent.getStringExtra("hrt"));
                 updateTextFieldspd(intent.getStringExtra("spd"));
-                databaseHelper.saveTimeRecord(intent.getLongExtra("vadvalue", 0),intent.getLongExtra("hrtvalue",0));
+                updateTextFieldax(intent.getStringExtra("ax"));
+                updateTextFielday(intent.getStringExtra("ay"));
+                updateTextFieldaz(intent.getStringExtra("az"));
+                SimpleDateFormat sdf=new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                java.util.Date date=new java.util.Date();
+                timetemp=sdf.format(date);
+                if(databaserecording) {
+                    databaseHelper.saveTimeRecord(timetemp,intent.getLongExtra("vadvalue", 0), intent.getLongExtra("hrtvalue", 0), intent.getFloatExtra("ax", 0), intent.getFloatExtra("ay", 0), intent.getFloatExtra("az", 0));
+                }
             }
         };
     }

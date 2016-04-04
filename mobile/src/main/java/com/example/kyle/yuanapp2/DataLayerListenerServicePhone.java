@@ -34,19 +34,30 @@ public class DataLayerListenerServicePhone extends WearableListenerService {
                 Long X = map.getLong("touchX");
                 Long Y = map.getLong("touchY");
                 float speed=map.getFloat("speed");
+                float a_x=map.getFloat("acx");
+                float a_y=map.getFloat("acy");
+                float a_z=map.getFloat("acz");
     //            String reply = "Voice Activity=" +X+", Heart Rate=  " + Y+",Speed="+speed;
                 String reply="Voice Activity=" +X;
                 String hrt="Heart Rate="+Y;
                 String spd="Speed="+speed;
+                String ax="a_x="+a_x;
+                String ay="a_y="+a_y;
+                String az="a_z="+a_z;
                 Log.v("yuan-mobile", reply);
                 Intent localIntent = new Intent("phone.localIntent");
-                localIntent.putExtra("vad", reply);
+                localIntent.putExtra("vad", reply);//string
                 localIntent.putExtra("hrt", hrt);
                 localIntent.putExtra("spd", spd);
-                localIntent.putExtra("vadvalue",X);
-                localIntent.putExtra("hrtvalue",Y);
                 localIntent.putExtra("speedvalue",speed);
-
+                localIntent.putExtra("ax",ax);
+                localIntent.putExtra("ay",ay);
+                localIntent.putExtra("az",az);
+                localIntent.putExtra("vadvalue",X);//value
+                localIntent.putExtra("hrtvalue",Y);
+                localIntent.putExtra("axvalue",ax);
+                localIntent.putExtra("ayvalue",ay);
+                localIntent.putExtra("azvalue",az);
                 LocalBroadcastManager.getInstance(this)
                         .sendBroadcast(localIntent);
             }
