@@ -107,6 +107,7 @@ public class MainActivity extends AppCompatActivity {
 //        TimeTrackerOpenHelper openHelper=new TimeTrackerOpenHelper(this);
     }
 
+    // database botton
     View.OnClickListener dstartOnClickListener
             = new View.OnClickListener(){
         @Override
@@ -119,6 +120,7 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(getApplicationContext(), "database created", Toast.LENGTH_SHORT).show();
         }};
 
+    //database button
     View.OnClickListener dstopOnClickListener
             = new View.OnClickListener(){
         @Override
@@ -132,6 +134,8 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(getApplicationContext(), "database saved", Toast.LENGTH_SHORT).show();
         }};
 
+
+    // create database
     public void creatdatabase()
     {
         SimpleDateFormat sdf=new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -141,6 +145,7 @@ public class MainActivity extends AppCompatActivity {
         databaseHelper=new TimeListDatabaseHelper(MainActivity.this,databasename);
     }
 
+    //create database
     public void writedatabase()
     {
         pathtemp="/data/data/com.example.kyle.yuanapp2/databases/"+databasename;
@@ -182,6 +187,8 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+
+    //currently useless code
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -189,6 +196,7 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
+    //currently useless code
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle action bar item clicks here. The action bar will
@@ -203,6 +211,8 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
+
+    //send information to wear
     public void sendTextToWear()
     {
         int r = (int) (255 * Math.random());
@@ -218,11 +228,7 @@ public class MainActivity extends AppCompatActivity {
                 Wearable.DataApi.putDataItem(mGoogleApiClient, putDataReq);
     }
 
-    public void transferData()
-    {
-
-    }
-
+    // update data to the screen
     private void updateTextFieldvad(String text) {
         Log.v("yuan-mobile", "Arrived text:" + text);
         ((TextView)findViewById(R.id.vad)).setText(text);
@@ -251,6 +257,27 @@ public class MainActivity extends AppCompatActivity {
         ((TextView)findViewById(R.id.a_z)).setText(text);
     }
 
+    private void updateTextFieldgspd(String text) {
+        Log.v("yuan-mobile", "Arrived text:" + text);
+        ((TextView)findViewById(R.id.gspd)).setText(text);
+    }
+
+    private void updateTextFieldgx(String text) {
+        Log.v("yuan-mobile", "Arrived text:" + text);
+        ((TextView)findViewById(R.id.g_x)).setText(text);
+    }
+
+    private void updateTextFieldgy(String text) {
+        Log.v("yuan-mobile", "Arrived text:" + text);
+        ((TextView)findViewById(R.id.g_y)).setText(text);
+    }
+
+    private void updateTextFieldgz(String text) {
+        Log.v("yuan-mobile", "Arrived text:" + text);
+        ((TextView)findViewById(R.id.g_z)).setText(text);
+    }
+
+    // receive data from the datalayer and prepare to show on screen
     private BroadcastReceiver createBroadcastReceiver() {
         return new BroadcastReceiver() {
             @Override
@@ -261,16 +288,21 @@ public class MainActivity extends AppCompatActivity {
                 updateTextFieldax(intent.getStringExtra("ax"));
                 updateTextFielday(intent.getStringExtra("ay"));
                 updateTextFieldaz(intent.getStringExtra("az"));
+                updateTextFieldgspd(intent.getStringExtra("gspd"));
+                updateTextFieldgx(intent.getStringExtra("gx"));
+                updateTextFieldgy(intent.getStringExtra("gy"));
+                updateTextFieldgz(intent.getStringExtra("gz"));
                 SimpleDateFormat sdf=new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
                 java.util.Date date=new java.util.Date();
                 timetemp=sdf.format(date);
                 if(databaserecording) {
-                    databaseHelper.saveTimeRecord(timetemp,intent.getLongExtra("vadvalue", 0), intent.getLongExtra("hrtvalue", 0), intent.getFloatExtra("ax", 0), intent.getFloatExtra("ay", 0), intent.getFloatExtra("az", 0));
+                    databaseHelper.saveTimeRecord(timetemp,intent.getLongExtra("vadvalue", 0), intent.getLongExtra("hrtvalue", 0), intent.getFloatExtra("axvalue", 0), intent.getFloatExtra("ayvalue", 0), intent.getFloatExtra("azvalue", 0));
                 }
             }
         };
     }
 
+    // start button and show notification currently invisible
     public void onStartMonitor(View view)
     {
         RadioButton r1=(RadioButton)findViewById(R.id.radioButton);

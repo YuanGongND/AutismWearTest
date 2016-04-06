@@ -125,40 +125,38 @@
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceSmall"
-        android:text="VAD"
-        android:id="@+id/vad"
+        android:text="Heart Rate"
+        android:id="@+id/hrt_text"
         android:textStyle="bold"
-        android:textSize="36sp"
+        android:textSize="20sp"
         android:visibility="visible"
-        android:layout_below="@+id/textView"
-        android:layout_alignParentStart="true"
-        android:layout_marginTop="29dp"
         android:layout_x="0dp"
-        android:layout_y="107dp" />
+        android:layout_y="50dp" />
 
     <TextView
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceSmall"
-        android:text="Heart Rate"
-        android:id="@+id/hrt_text"
+        android:text="VAD"
+        android:id="@+id/vad"
         android:textStyle="bold"
-        android:textSize="36sp"
+        android:textSize="20sp"
         android:visibility="visible"
+        android:layout_marginTop="29dp"
         android:layout_x="0dp"
-        android:layout_y="52dp" />
+        android:layout_y="80dp" />
 
     <TextView
         android:layout_width="364dp"
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceSmall"
-        android:text="Speed"
+        android:text="Accelerometer-Speed"
         android:id="@+id/spd_text"
         android:textStyle="bold"
-        android:textSize="36sp"
+        android:textSize="20sp"
         android:visibility="visible"
         android:layout_x="2dp"
-        android:layout_y="165dp" />
+        android:layout_y="110dp" />
 
     <TextView
         android:layout_width="fill_parent"
@@ -167,10 +165,10 @@
         android:text="A-X"
         android:id="@+id/a_x"
         android:textStyle="bold"
-        android:textSize="36sp"
+        android:textSize="20sp"
         android:visibility="visible"
         android:layout_x="2dp"
-        android:layout_y="223dp" />
+        android:layout_y="140dp" />
 
     <TextView
         android:layout_width="fill_parent"
@@ -179,12 +177,12 @@
         android:text="A-Y"
         android:id="@+id/a_y"
         android:textStyle="bold"
-        android:textSize="36sp"
+        android:textSize="20sp"
         android:visibility="visible"
         android:layout_below="@+id/a_x"
         android:layout_alignParentStart="true"
         android:layout_x="2dp"
-        android:layout_y="274dp" />
+        android:layout_y="170dp" />
 
     <TextView
         android:layout_width="fill_parent"
@@ -193,9 +191,57 @@
         android:text="A-Z"
         android:id="@+id/a_z"
         android:textStyle="bold"
-        android:textSize="36sp"
+        android:textSize="20sp"
         android:layout_marginTop="105dp"
         android:layout_x="2dp"
-        android:layout_y="326dp" />
+        android:layout_y="200dp" />
+
+    <TextView
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:text="Gyroscope-Speed"
+        android:id="@+id/gspd"
+        android:textStyle="bold"
+        android:textSize="20sp"
+        android:layout_marginTop="105dp"
+        android:layout_x="2dp"
+        android:layout_y="230dp" />
+
+    <TextView
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:text="G-X"
+        android:id="@+id/g_x"
+        android:textStyle="bold"
+        android:textSize="20sp"
+        android:layout_marginTop="105dp"
+        android:layout_x="2dp"
+        android:layout_y="260dp" />
+
+    <TextView
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:text="G-Y"
+        android:id="@+id/g_y"
+        android:textStyle="bold"
+        android:textSize="20sp"
+        android:layout_marginTop="105dp"
+        android:layout_x="2dp"
+        android:layout_y="290dp" />
+
+    <TextView
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:text="G-Z"
+        android:id="@+id/g_z"
+        android:textStyle="bold"
+        android:textSize="20sp"
+        android:layout_marginTop="105dp"
+        android:layout_x="2dp"
+        android:layout_y="320dp" />
 
 </AbsoluteLayout>

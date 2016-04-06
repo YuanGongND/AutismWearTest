@@ -46,7 +46,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-public class MainActivity extends Activity implements HeartbeatService.OnChangeListener,SensorEventListener {
+public class MainActivity extends Activity implements HeartbeatService.OnChangeListener,SensorEventListener { //must implement listener to service
 
     Button startRec, stopRec, playBack;
     TextView mText;
@@ -55,12 +55,12 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
     BroadcastReceiver mResultReceiver;
     private SensorManager senSensorManager;
     private Sensor senAccelerometer;
-    private long lastUpdate;
-    private float last_x, last_y, last_z;
+    private long lastUpdate,glastUpdate;
+    private float last_x, last_y, last_z,last_gx, last_gy, last_gz;
     private static final int SHAKE_THRESHOLD = 1000;
     long sum = 0;
     long hrt=0;
-    float speed=0;
+    float speed=0,gspeed=0;
     ServiceConnection hrtt;
     Intent hrtintent;
 
@@ -116,7 +116,7 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
 
     //    Intent hrtintent = new Intent(this, HeartbeatService.class);
     //    startService(hrtintent);
-        hrtt=new ServiceConnection()
+        hrtt=new ServiceConnection()   //prepare heart rate service, not started yet
         {
             @Override
             public void onServiceConnected(ComponentName componentName, IBinder binder) {
@@ -126,37 +126,34 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
             }
             public void onServiceDisconnected(ComponentName componentName) {}
         };
-        hrtintent=new Intent(MainActivity.this, HeartbeatService.class);
+        hrtintent=new Intent(MainActivity.this, HeartbeatService.class); //build intent, still not start, start in the onrecord
         //bindService(hrtintent,hrtt, Service.BIND_AUTO_CREATE);
        // this.unbindService(hrtt);
     }
 
+
+    // inner listener class,start recording button
     View.OnClickListener startRecOnClickListener
             = new View.OnClickListener(){
-
         @Override
         public void onClick(View arg0) {
             startRec.setClickable(false);
             stopRec.setClickable(true);
             Thread recordThread = new Thread(new Runnable(){
-
                 @Override
                 public void run() {
                     recording = true;
-                    startRecord();
+                    startRecord();  // inside,also start heart rate service by binding service
                 }
-
             });
             testwear2mobile(sum);
             Toast.makeText(getApplicationContext(), "information sent ", Toast.LENGTH_SHORT).show();
             recordThread.start();
-
-
         }};
 
+    //inner class button, start
     View.OnClickListener stopRecOnClickListener
             = new View.OnClickListener(){
-
         @Override
         public void onClick(View arg0) {
             startRec.setClickable(true);
@@ -164,24 +161,21 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
             recording = false;
             hrt=0;
             sum=0;
-            stophrt();
+            stophrt();  // stop heart rate service
             Log.d("yuan-wear", "plan to stop heart rate service.");
-           //MainActivity.this.unbindService(hrtt);
-
-            //startService(hrtintent);
-            //stopService(HeartbeatService.class);
         }};
 
+    //inner class button, play ,currently useless code
     View.OnClickListener playBackOnClickListener
             = new View.OnClickListener(){
-
         @Override
         public void onClick(View v) {
             playRecord();
         }
-
     };
 
+
+    // stop heart rate service
     public void stophrt()
     {
         this.unbindService(hrtt);
@@ -189,11 +183,9 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
         Log.d("yuan-wear", "stop heart rate service.");
     }
 
+    // send related information to handheld device
     public void testwear2mobile(long xm)
     {
-    //    float xm = (float) (255 * Math.random());
-       // if (ym<xm)
-       // {ym=xm;}
         final PutDataMapRequest putRequest =
                 PutDataMapRequest.create("/WEAR2PHONE");
         final DataMap map = putRequest.getDataMap();
@@ -203,20 +195,23 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
         map.putFloat("acx",last_x);
         map.putFloat("acy",last_y);
         map.putFloat("acz",last_z);
+        map.putFloat("gspeed",gspeed);
+        map.putFloat("gyx",last_gx);
+        map.putFloat("gyy",last_gy);
+        map.putFloat("gyz",last_gz);
         Wearable.DataApi.putDataItem(mGoogleApiClient,
                 putRequest.asPutDataRequest());
         Log.v("yuan-wear", "information sent");
     }
 
+    //start recording,inside realize the heart rate
     private void startRecord(){
-
         bindService(hrtintent,hrtt, Service.BIND_AUTO_CREATE);
         Log.v("yuan-wear", "service rebinded");
         File file = new File(Environment.getExternalStorageDirectory(), "testyuan.pcm");
 
         try {
             file.createNewFile();
-
             OutputStream outputStream = new FileOutputStream(file);
             BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(outputStream);
             DataOutputStream dataOutputStream = new DataOutputStream(bufferedOutputStream);
@@ -269,6 +264,7 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
 
     }
 
+    //play record function, currently useless
     void playRecord(){
 
         File file = new File(Environment.getExternalStorageDirectory(), "testyuan.pcm");
@@ -353,8 +349,30 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
             }
 
         }
-    }
 
+        if (mySensor.getType() == Sensor.TYPE_GYROSCOPE) {
+            float gx = sensorEvent.values[0];
+            float gy = sensorEvent.values[1];
+            float gz = sensorEvent.values[2];
+
+            long gcurTime = System.currentTimeMillis();
+            // only allow one update every 100ms.
+            if ((gcurTime - glastUpdate) > 100) {
+                long gdiffTime = (gcurTime - glastUpdate);
+               glastUpdate = gcurTime;
+
+                gspeed = Math.abs(gx + gy + gz - last_gx - last_gy - last_gz) / gdiffTime * 10000;
+
+                if (speed > SHAKE_THRESHOLD) {
+                    Toast.makeText(this, "rotate detected w/ speed: " + gspeed, Toast.LENGTH_SHORT).show();
+                }
+                last_gx = gx;
+                last_gy = gy;
+                last_gz = gz;
+            }
+
+        }
+    }
     @Override
         public void onAccuracyChanged(Sensor sensor, int accuracy) {
             // can be safely ignored for this demo

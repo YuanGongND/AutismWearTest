@@ -58,9 +58,9 @@ public class TimeListDatabaseHelper {
                     + TIMETRACKER_COLUMN_TIME + " VARCHAR, "
                     + TIMETRACKER_COLUMN_VAD + " REAL, "
                     + TIMETRACKER_COLUMN_HRT + " REAL, "
-                    + TIMETRACKER_COLUMN_AX + " REAL, "
-                    + TIMETRACKER_COLUMN_AY + " REAL, "
-                    + TIMETRACKER_COLUMN_AZ + " REAL )");
+                    + TIMETRACKER_COLUMN_AX + " FLOAT, "
+                    + TIMETRACKER_COLUMN_AY + " FLOAT, "
+                    + TIMETRACKER_COLUMN_AZ + " FLOAT )");
         }
 
         public void onUpgrade(SQLiteDatabase database,int oldVersion,int newVersion)

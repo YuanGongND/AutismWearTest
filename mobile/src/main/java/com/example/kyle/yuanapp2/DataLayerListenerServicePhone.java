@@ -30,34 +30,49 @@ public class DataLayerListenerServicePhone extends WearableListenerService {
             if("/WEAR2PHONE".equals(path)) {
                 final DataMap map = DataMapItem
                         .fromDataItem(event.getDataItem()).getDataMap();
-                // read your values from map:
+                // read values from datalayer:
                 Long X = map.getLong("touchX");
                 Long Y = map.getLong("touchY");
                 float speed=map.getFloat("speed");
                 float a_x=map.getFloat("acx");
                 float a_y=map.getFloat("acy");
                 float a_z=map.getFloat("acz");
-    //            String reply = "Voice Activity=" +X+", Heart Rate=  " + Y+",Speed="+speed;
+                float gspeed=map.getFloat("gspeed");
+                float g_x=map.getFloat("gyx");
+                float g_y=map.getFloat("gyy");
+                float g_z=map.getFloat("gyz");
+                // convert to String (easier to use for demonstration)
                 String reply="Voice Activity=" +X;
                 String hrt="Heart Rate="+Y;
-                String spd="Speed="+speed;
+                String spd="A-Speed="+speed;
                 String ax="a_x="+a_x;
                 String ay="a_y="+a_y;
                 String az="a_z="+a_z;
-                Log.v("yuan-mobile", reply);
+                String gspd="G-Speed="+gspeed;
+                String gx="g_x="+g_x;
+                String gy="g_y="+g_y;
+                String gz="g_z="+g_z;
+                //send to mainactivity
                 Intent localIntent = new Intent("phone.localIntent");
                 localIntent.putExtra("vad", reply);//string
                 localIntent.putExtra("hrt", hrt);
                 localIntent.putExtra("spd", spd);
-                localIntent.putExtra("speedvalue",speed);
                 localIntent.putExtra("ax",ax);
                 localIntent.putExtra("ay",ay);
                 localIntent.putExtra("az",az);
+                localIntent.putExtra("gspd",gspd);
+                localIntent.putExtra("gx",gx);
+                localIntent.putExtra("gy",gy);
+                localIntent.putExtra("gz",gz);
                 localIntent.putExtra("vadvalue",X);//value
                 localIntent.putExtra("hrtvalue",Y);
-                localIntent.putExtra("axvalue",ax);
-                localIntent.putExtra("ayvalue",ay);
-                localIntent.putExtra("azvalue",az);
+                localIntent.putExtra("speedvalue",speed);
+                localIntent.putExtra("axvalue",a_x);
+                localIntent.putExtra("ayvalue",a_y);
+                localIntent.putExtra("azvalue",a_z);
+                localIntent.putExtra("gxvalue",g_x);
+                localIntent.putExtra("gyvalue",g_y);
+                localIntent.putExtra("gzvalue",g_z);
                 LocalBroadcastManager.getInstance(this)
                         .sendBroadcast(localIntent);
             }
