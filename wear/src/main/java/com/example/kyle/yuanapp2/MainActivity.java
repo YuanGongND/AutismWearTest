@@ -78,7 +78,7 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
     String AUDIO_RECORDER_FILE_EXT_WAV = ".wav";
     String sfilepath;
     int samplerate=44100;
-    int samplebit=8;
+    int samplebit=16;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -220,6 +220,14 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
         Log.v("yuan-wear", "information sent");
     }
 
+    private byte[] shortToByteArray(short s) {
+        byte[] shortBuf = new byte[2];
+        for(int i=0;i<2;i++) {
+            int offset = (shortBuf.length - 1 -i)*8;
+            shortBuf[i] = (byte)((s>>>offset)&0xff);
+        }
+        return shortBuf;
+    }
     //start recording,inside realize the heart rate
     private void startRecord() {
         bindService(hrtintent, hrtt, Service.BIND_AUTO_CREATE);
@@ -235,15 +243,15 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
 
             minBufferSize = AudioRecord.getMinBufferSize(samplerate,
                     AudioFormat.CHANNEL_IN_MONO,
-                    AudioFormat.ENCODING_PCM_8BIT);
+                    AudioFormat.ENCODING_PCM_16BIT);
            //         AudioFormat.ENCODING_PCM_16BIT);
 
-            byte[] audioData = new byte[minBufferSize];
+            short [] audioData = new short[minBufferSize];
 
             AudioRecord audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC,
                     samplerate,
                     AudioFormat.CHANNEL_IN_MONO,
-                    AudioFormat.ENCODING_PCM_8BIT,
+                    AudioFormat.ENCODING_PCM_16BIT,
                     minBufferSize);
 
             audioRecord.startRecording();
@@ -254,10 +262,12 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
                 }
             });
 
-            while(recording){
+            while (recording){
                 int numberOfShort = audioRecord.read(audioData, 0, minBufferSize);
                 for(int i = 0; i < numberOfShort; i++){
-                    dataOutputStream.writeByte(audioData[i]);
+                    byte [] tempbyte=shortToByteArray(audioData[i]);
+                    dataOutputStream.writeByte(tempbyte[1]);
+                    dataOutputStream.writeByte(tempbyte[0]);
                     //sum += Math.abs(audioData[i]);
                     sum += audioData[i]*audioData[i];
                 }
@@ -436,35 +446,35 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
         file.delete();
     }
 
-    private void copyWaveFile(String inFilename,String outFilename){
+    private void copyWaveFile(String inFilename,String outFilename) {
         FileInputStream in = null;
         FileOutputStream out = null;
         long totalAudioLen = 0;
         long totalDataLen = totalAudioLen + 36;
         long longSampleRate = samplerate;
         int channels = 1;
-        long byteRate = samplebit * samplerate * channels/8;
+        long byteRate = samplebit * samplerate * channels / 8;
 
         byte[] data = new byte[minBufferSize];
 
         try {
-            File infile=new File(inFilename);
+            File infile = new File(inFilename);
             in = new FileInputStream(infile);
-            long length2=infile.length();
-            Log.i("yuan-wear", "the length2 before converting to wav="+length2);
-            File outfile=new File(outFilename);
+            long length2 = infile.length();
+            Log.i("yuan-wear", "the length2 before converting to wav=" + length2);
+            File outfile = new File(outFilename);
             out = new FileOutputStream(outfile);
-            long length3=infile.length();
-            Log.i("yuan-wear", "the length3 before converting to wav="+length3);
+            long length3 = infile.length();
+            Log.i("yuan-wear", "the length3 before converting to wav=" + length3);
             totalAudioLen = in.getChannel().size();
             totalDataLen = totalAudioLen + 36;
 
-         //   AppLog.logString("File size: " + totalDataLen);
+            //   AppLog.logString("File size: " + totalDataLen);
 
             WriteWaveFileHeader(out, totalAudioLen, totalDataLen,
                     longSampleRate, channels, byteRate);
 
-            while(in.read(data) != -1){
+            while (in.read(data) != -1) {
                 out.write(data);
             }
 
@@ -551,7 +561,7 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
         header[31] = (byte) ((byteRate >> 24) & 0xff);
         header[32] = (byte) (channels * 16 / 8); // block align
         header[33] = 0;
-        header[34] = 8; // bits per sample
+        header[34] = 16; // bits per sample
         header[35] = 0;
         header[36] = 'd';
         header[37] = 'a';
