@@ -17,6 +17,7 @@ import android.media.AudioManager;
 import android.media.AudioRecord;
 import android.media.AudioTrack;
 import android.media.MediaRecorder;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.IBinder;
@@ -30,12 +31,17 @@ import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.PendingResult;
+import com.google.android.gms.wearable.Asset;
+import com.google.android.gms.wearable.DataApi;
 import com.google.android.gms.wearable.DataMap;
 import com.google.android.gms.wearable.PutDataMapRequest;
+import com.google.android.gms.wearable.PutDataRequest;
 import com.google.android.gms.wearable.Wearable;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
@@ -45,6 +51,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.logging.Logger;
+
 
 public class MainActivity extends Activity implements HeartbeatService.OnChangeListener,SensorEventListener { //must implement listener to service
 
@@ -63,6 +71,14 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
     float speed=0,gspeed=0;
     ServiceConnection hrtt;
     Intent hrtintent;
+    int minBufferSize;
+    byte RECODERRDER_BPP=8;
+    String AUDIO_RECORDER_FOLDER = "YuanAudioRecorder";
+    String AUDIO_RECORDER_TEMP_FILE = "record_temp_yuan.pcm";
+    String AUDIO_RECORDER_FILE_EXT_WAV = ".wav";
+    String sfilepath;
+    int samplerate=44100;
+    int samplebit=8;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -192,23 +208,24 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
         map.putLong("touchX", xm);
         map.putLong("touchY", hrt);
         map.putFloat("speed", speed);
-        map.putFloat("acx",last_x);
-        map.putFloat("acy",last_y);
-        map.putFloat("acz",last_z);
+        map.putFloat("acx", last_x);
+        map.putFloat("acy", last_y);
+        map.putFloat("acz", last_z);
         map.putFloat("gspeed",gspeed);
         map.putFloat("gyx",last_gx);
-        map.putFloat("gyy",last_gy);
-        map.putFloat("gyz",last_gz);
+        map.putFloat("gyy", last_gy);
+        map.putFloat("gyz", last_gz);
         Wearable.DataApi.putDataItem(mGoogleApiClient,
                 putRequest.asPutDataRequest());
         Log.v("yuan-wear", "information sent");
     }
 
     //start recording,inside realize the heart rate
-    private void startRecord(){
-        bindService(hrtintent,hrtt, Service.BIND_AUTO_CREATE);
+    private void startRecord() {
+        bindService(hrtintent, hrtt, Service.BIND_AUTO_CREATE);
         Log.v("yuan-wear", "service rebinded");
-        File file = new File(Environment.getExternalStorageDirectory(), "testyuan.pcm");
+        String tfilename = getTempFilename();
+        File file = new File(tfilename);
 
         try {
             file.createNewFile();
@@ -216,16 +233,17 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
             BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(outputStream);
             DataOutputStream dataOutputStream = new DataOutputStream(bufferedOutputStream);
 
-            int minBufferSize = AudioRecord.getMinBufferSize(8000,
-                    AudioFormat.CHANNEL_IN_DEFAULT,
-                    AudioFormat.ENCODING_PCM_16BIT);
+            minBufferSize = AudioRecord.getMinBufferSize(samplerate,
+                    AudioFormat.CHANNEL_IN_MONO,
+                    AudioFormat.ENCODING_PCM_8BIT);
+           //         AudioFormat.ENCODING_PCM_16BIT);
 
-            short[] audioData = new short[minBufferSize];
+            byte[] audioData = new byte[minBufferSize];
 
             AudioRecord audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC,
-                    8000,
-                    AudioFormat.CHANNEL_IN_DEFAULT,
-                    AudioFormat.ENCODING_PCM_16BIT,
+                    samplerate,
+                    AudioFormat.CHANNEL_IN_MONO,
+                    AudioFormat.ENCODING_PCM_8BIT,
                     minBufferSize);
 
             audioRecord.startRecording();
@@ -239,7 +257,7 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
             while(recording){
                 int numberOfShort = audioRecord.read(audioData, 0, minBufferSize);
                 for(int i = 0; i < numberOfShort; i++){
-                    dataOutputStream.writeShort(audioData[i]);
+                    dataOutputStream.writeByte(audioData[i]);
                     //sum += Math.abs(audioData[i]);
                     sum += audioData[i]*audioData[i];
                 }
@@ -250,6 +268,11 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
 
             audioRecord.stop();
             audioRecord.release();
+            long lengthbefore=file.length();
+            Log.i("yuan-wear", "the length before converting to wav="+lengthbefore);
+            copyWaveFile(getTempFilename(), getFilename());
+            deleteTempFile();
+            SendRecording();
             runOnUiThread(new Runnable() {
                 public void run() {
                     Toast.makeText(getApplicationContext(), "stored in /storage/emulated/0/testyuan.pcm ", Toast.LENGTH_SHORT).show();
@@ -289,8 +312,8 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
 
             AudioTrack audioTrack = new AudioTrack(
                     AudioManager.STREAM_MUSIC,
-                    8000,
-                    AudioFormat.CHANNEL_IN_DEFAULT,
+                    samplerate,
+                    AudioFormat.CHANNEL_IN_MONO,
                     AudioFormat.ENCODING_PCM_16BIT,
                     bufferSizeInBytes,
                     AudioTrack.MODE_STREAM);
@@ -377,4 +400,168 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
         public void onAccuracyChanged(Sensor sensor, int accuracy) {
             // can be safely ignored for this demo
         }
+
+    private String getTempFilename(){
+        String filepath = Environment.getExternalStorageDirectory().getPath();
+        File file = new File(filepath,AUDIO_RECORDER_FOLDER);
+
+        if(!file.exists()){
+            file.mkdirs();
+        }
+
+        File tempFile = new File(filepath,AUDIO_RECORDER_TEMP_FILE);
+
+        if(tempFile.exists())
+            tempFile.delete();
+
+        return (file.getAbsolutePath() + "/" + AUDIO_RECORDER_TEMP_FILE);
+    }
+
+    private String getFilename(){
+        String filepath = Environment.getExternalStorageDirectory().getPath();
+        File file = new File(filepath,AUDIO_RECORDER_FOLDER);
+
+        if(!file.exists()){
+            file.mkdirs();
+        }
+     //   Toast.makeText(getApplicationContext(), file.getAbsolutePath() + "/" + System.currentTimeMillis() + AUDIO_RECORDER_FILE_EXT_WAV, Toast.LENGTH_SHORT).show();
+        Log.v("yuan-wear", file.getAbsolutePath() + "/" + System.currentTimeMillis() + AUDIO_RECORDER_FILE_EXT_WAV);
+        sfilepath=file.getAbsolutePath() + "/" + System.currentTimeMillis() + AUDIO_RECORDER_FILE_EXT_WAV;
+        return (file.getAbsolutePath() + "/" + System.currentTimeMillis() + AUDIO_RECORDER_FILE_EXT_WAV);
+    }
+
+    private void deleteTempFile() {
+        File file = new File(getTempFilename());
+
+        file.delete();
+    }
+
+    private void copyWaveFile(String inFilename,String outFilename){
+        FileInputStream in = null;
+        FileOutputStream out = null;
+        long totalAudioLen = 0;
+        long totalDataLen = totalAudioLen + 36;
+        long longSampleRate = samplerate;
+        int channels = 1;
+        long byteRate = samplebit * samplerate * channels/8;
+
+        byte[] data = new byte[minBufferSize];
+
+        try {
+            File infile=new File(inFilename);
+            in = new FileInputStream(infile);
+            long length2=infile.length();
+            Log.i("yuan-wear", "the length2 before converting to wav="+length2);
+            File outfile=new File(outFilename);
+            out = new FileOutputStream(outfile);
+            long length3=infile.length();
+            Log.i("yuan-wear", "the length3 before converting to wav="+length3);
+            totalAudioLen = in.getChannel().size();
+            totalDataLen = totalAudioLen + 36;
+
+         //   AppLog.logString("File size: " + totalDataLen);
+
+            WriteWaveFileHeader(out, totalAudioLen, totalDataLen,
+                    longSampleRate, channels, byteRate);
+
+            while(in.read(data) != -1){
+                out.write(data);
+            }
+
+            in.close();
+            out.close();
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    void SendRecording()throws FileNotFoundException, IOException
+    {
+        File tfile=new File(sfilepath);
+        FileInputStream tfis = new FileInputStream(tfile);
+        long length4=tfile.length();
+        Log.i("yuan-wear", "the length4 before converting to wav="+length4);
+     //   Asset asset=Asset.createFromUri(Uri.fromFile(tfile));
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        byte[] buf = new byte[1024];
+        try {
+            for (int readNum; (readNum = tfis.read(buf)) != -1;) {
+                bos.write(buf, 0, readNum); //no doubt here is 0
+                //Writes len bytes from the specified byte array starting at offset off to this byte array output stream.
+                System.out.println("read " + readNum + " bytes,");
+                Log.i("yuan-wear","read " + readNum + " bytes,");
+            }
+        } catch (IOException ex) {
+        }
+        Asset asset=Asset.createFromBytes(bos.toByteArray());
+
+
+        PutDataMapRequest dataMap = PutDataMapRequest.create("/rcd");
+        dataMap.getDataMap().putAsset("profilercd", asset);
+        PutDataRequest request = dataMap.asPutDataRequest();
+        PendingResult<DataApi.DataItemResult> pendingResult = Wearable.DataApi
+                .putDataItem(mGoogleApiClient, request);
+        //PutDataRequest request = PutDataRequest.create("/rcd");
+        //Wearable.DataApi.putDataItem(mGoogleApiClient, request);
+        //request.putAsset("profilercd", asset);
+        Log.i("yuan-wear", "After send recording");
+    }
+
+    private void WriteWaveFileHeader(
+            FileOutputStream out, long totalAudioLen,
+            long totalDataLen, long longSampleRate, int channels,
+            long byteRate) throws IOException {
+
+        byte[] header = new byte[44];
+        Log.v("yuan-wear", "write head");
+        header[0] = 'R'; // RIFF/WAVE header
+        header[1] = 'I';
+        header[2] = 'F';
+        header[3] = 'F';
+        header[4] = (byte) (totalDataLen & 0xff);
+        header[5] = (byte) ((totalDataLen >> 8) & 0xff);
+        header[6] = (byte) ((totalDataLen >> 16) & 0xff);
+        header[7] = (byte) ((totalDataLen >> 24) & 0xff);
+        header[8] = 'W';
+        header[9] = 'A';
+        header[10] = 'V';
+        header[11] = 'E';
+        header[12] = 'f'; // 'fmt ' chunk
+        header[13] = 'm';
+        header[14] = 't';
+        header[15] = ' ';
+        header[16] = 16; // 4 bytes: size of 'fmt ' chunk
+        header[17] = 0;
+        header[18] = 0;
+        header[19] = 0;
+        header[20] = 1; // format = 1
+        header[21] = 0;
+        header[22] = (byte) channels;
+        header[23] = 0;
+        header[24] = (byte) (longSampleRate & 0xff);
+        header[25] = (byte) ((longSampleRate >> 8) & 0xff);
+        header[26] = (byte) ((longSampleRate >> 16) & 0xff);
+        header[27] = (byte) ((longSampleRate >> 24) & 0xff);
+        header[28] = (byte) (byteRate & 0xff);
+        header[29] = (byte) ((byteRate >> 8) & 0xff);
+        header[30] = (byte) ((byteRate >> 16) & 0xff);
+        header[31] = (byte) ((byteRate >> 24) & 0xff);
+        header[32] = (byte) (channels * 16 / 8); // block align
+        header[33] = 0;
+        header[34] = 8; // bits per sample
+        header[35] = 0;
+        header[36] = 'd';
+        header[37] = 'a';
+        header[38] = 't';
+        header[39] = 'a';
+        header[40] = (byte) (totalAudioLen & 0xff);
+        header[41] = (byte) ((totalAudioLen >> 8) & 0xff);
+        header[42] = (byte) ((totalAudioLen >> 16) & 0xff);
+        header[43] = (byte) ((totalAudioLen >> 24) & 0xff);
+
+        out.write(header, 0, 44);
+    }
 }

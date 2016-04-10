@@ -2,23 +2,47 @@ package com.example.kyle.yuanapp2;
 
 import android.app.Service;
 import android.content.Intent;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.IBinder;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.data.FreezableUtils;
+import com.google.android.gms.wearable.Asset;
 import com.google.android.gms.wearable.DataEvent;
 import com.google.android.gms.wearable.DataEventBuffer;
 import com.google.android.gms.wearable.DataMap;
 import com.google.android.gms.wearable.DataMapItem;
+import com.google.android.gms.wearable.Wearable;
 import com.google.android.gms.wearable.WearableListenerService;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+
 
 public class DataLayerListenerServicePhone extends WearableListenerService {
+    private GoogleApiClient mGoogleApiClient;
+    int TIMEOUT_MS=1000;
+    public void onCreate() {
 
-    public void onDataChanged(DataEventBuffer dataEvents) {
+        super.onCreate();
+        mGoogleApiClient = new GoogleApiClient.Builder(this)
+                .addApi(Wearable.API)
+                .build();
+        mGoogleApiClient.connect();
+
+    }
+
+    public void onDataChanged(DataEventBuffer dataEvents)  {
         super.onDataChanged(dataEvents);
 
         Log.v("yuan-mobile", "mobile service started");
@@ -27,6 +51,18 @@ public class DataLayerListenerServicePhone extends WearableListenerService {
         for(DataEvent event : events) {
             final Uri uri = event.getDataItem().getUri();
             final String path = uri!=null ? uri.getPath() : null;
+
+
+            if (event.getType() == DataEvent.TYPE_CHANGED &&
+                    event.getDataItem().getUri().getPath().equals("/rcd")) {
+                Log.v("yuan-mobile", "Received rcd.");
+                DataMapItem dataMapItem = DataMapItem.fromDataItem(event.getDataItem());
+                Asset profileAsset = dataMapItem.getDataMap().getAsset("profilercd");
+                loadBitmapFromAsset(profileAsset);
+
+                // Do something with the bitmap
+            }
+
             if("/WEAR2PHONE".equals(path)) {
                 final DataMap map = DataMapItem
                         .fromDataItem(event.getDataItem()).getDataMap();
@@ -76,6 +112,39 @@ public class DataLayerListenerServicePhone extends WearableListenerService {
                 LocalBroadcastManager.getInstance(this)
                         .sendBroadcast(localIntent);
             }
+
         }
+    }
+
+    public void loadBitmapFromAsset(Asset asset) {
+        if (asset == null) {
+            throw new IllegalArgumentException("Asset must be non-null");
+        }
+        ConnectionResult result =
+                mGoogleApiClient.blockingConnect(TIMEOUT_MS, TimeUnit.MILLISECONDS);
+        if (!result.isSuccess()) {
+           // return null;
+        }
+        // convert asset into a file descriptor and block until it's ready
+        InputStream assetInputStream = Wearable.DataApi.getFdForAsset(
+                mGoogleApiClient, asset).await().getInputStream();
+        mGoogleApiClient.disconnect();
+
+        if (assetInputStream == null) {
+            Log.v("yuan-wear", "Requested an unknown Asset.");
+            //return null;
+        }
+        // decode the stream into a bitmap
+        try {
+            byte[] buffer = new byte[assetInputStream.available()];
+            assetInputStream.read(buffer);
+
+            String outpathtemp = "/mnt/sdcard/yuan/testrcd.wav";
+            File testrcd = new File(outpathtemp);
+            OutputStream outStream = new FileOutputStream(testrcd);
+            outStream.write(buffer);
+            Log.v("yuan-mobile", "written.");
+//        return BitmapFactory.decodeStream(assetInputStream);
+        }catch (IOException e){}
     }
 }

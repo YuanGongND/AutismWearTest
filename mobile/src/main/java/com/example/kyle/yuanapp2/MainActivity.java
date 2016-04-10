@@ -28,6 +28,7 @@ import android.widget.RadioButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.firebase.client.Firebase;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.PendingResult;
@@ -52,6 +53,7 @@ public class MainActivity extends AppCompatActivity {
     private GoogleApiClient mGoogleApiClient;
     private int mColorCount = 0;
     private TimeListDatabaseHelper databaseHelper;
+    public Firebase mref;
     Button dstart,dstop;
 
 
@@ -103,6 +105,11 @@ public class MainActivity extends AppCompatActivity {
                 new IntentFilter("phone.localIntent"));
 
         sendTextToWear();
+
+        Firebase.setAndroidContext(this);
+        mref = new Firebase("https://vivid-inferno-836.firebaseio.com/");
+            // other setup code
+
         //databaseHelper=new TimeListDatabaseHelper(this);
 //        TimeTrackerOpenHelper openHelper=new TimeTrackerOpenHelper(this);
     }
@@ -324,18 +331,18 @@ public class MainActivity extends AppCompatActivity {
             PendingIntent mapPendingIntent = PendingIntent.getActivity(this, 0, mapIntent, 0);
 
             NotificationCompat.Action action1 =
-                    new NotificationCompat.Action.Builder(R.drawable.ic_media_play,
+                    new NotificationCompat.Action.Builder(R.drawable.common_google_signin_btn_icon_dark,
                               getString(R.string.map), viewPendingIntent)
                               .build();
 
 
               Notification notificationBuilder =
                     new NotificationCompat.Builder(this)
-                            .setSmallIcon(R.drawable.mr_ic_audio_vol)
+                            .setSmallIcon(R.drawable.common_google_signin_btn_icon_light)
                             .setContentTitle("Please authorize on your watch")
                             .setContentText("Right swipe click 'agree' on your watch ")
                             .setContentIntent(viewPendingIntent)
-                            .addAction(R.drawable.ic_media_play, getString(R.string.map), viewPendingIntent)
+                            .addAction(R.drawable.common_plus_signin_btn_icon_light_focused, getString(R.string.map), viewPendingIntent)
                             .extend(new WearableExtender().addAction(action1))
                             .build();
               // Get an instance of the NotificationManager service
