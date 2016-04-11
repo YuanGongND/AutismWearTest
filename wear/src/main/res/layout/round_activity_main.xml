@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<AbsoluteLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/loganlogo"
+    android:background="@android:color/holo_blue_dark"
     tools:context="com.example.kyle.yuanapp2.MainActivity"
     tools:deviceIds="wear_round">
 
@@ -11,12 +11,13 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Start"
-        android:textColor="#CC0000"
+        android:textColor="@android:color/holo_red_dark"
+        android:colar="@android:color/black"
         android:id="@+id/start"
         android:clickable="true"
         android:onClick="StartRecording"
-        android:layout_above="@+id/stop"
-        android:layout_centerHorizontal="true" />
+        android:layout_x="224dp"
+        android:layout_y="261dp" />
 
     <Button
         android:layout_width="wrap_content"
@@ -25,18 +26,20 @@
         android:clickable="false"
         android:textColor="#CC0000"
         android:id="@+id/stop"
-        android:layout_centerVertical="true"
-        android:layout_centerHorizontal="true" />
+        android:layout_x="104dp"
+        android:layout_y="251dp" />
 
     <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="133dp"
+        android:layout_height="130dp"
         android:text="Play"
         android:textColor="#CC0000"
         android:id="@+id/play"
         android:layout_below="@+id/stop"
         android:layout_centerHorizontal="true"
-        android:layout_marginTop="57dp" />
+        android:layout_marginTop="57dp"
+        android:layout_x="40dp"
+        android:layout_y="41dp" />
 
     <TextView
         android:layout_width="wrap_content"
@@ -46,5 +49,8 @@
         android:id="@+id/heartrate"
         android:layout_below="@+id/stop"
         android:layout_alignEnd="@+id/play"
-        android:layout_marginTop="19dp" />
-</RelativeLayout>
+        android:layout_marginTop="19dp"
+        android:layout_x="54dp"
+        android:layout_y="169dp" />
+
+</AbsoluteLayout>

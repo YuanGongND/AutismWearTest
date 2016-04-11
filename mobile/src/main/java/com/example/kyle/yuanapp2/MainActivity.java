@@ -28,6 +28,15 @@ import android.widget.RadioButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.amazonaws.auth.CognitoCachingCredentialsProvider;
+import com.amazonaws.mobileconnectors.s3.transferutility.TransferListener;
+import com.amazonaws.mobileconnectors.s3.transferutility.TransferObserver;
+import com.amazonaws.mobileconnectors.s3.transferutility.TransferState;
+import com.amazonaws.mobileconnectors.s3.transferutility.TransferUtility;
+import com.amazonaws.regions.Region;
+import com.amazonaws.regions.Regions;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3Client;
 import com.firebase.client.Firebase;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -55,6 +64,10 @@ public class MainActivity extends AppCompatActivity {
     private TimeListDatabaseHelper databaseHelper;
     public Firebase mref;
     Button dstart,dstop;
+    TextView uppercentage;
+    AmazonS3 s3;
+    CognitoCachingCredentialsProvider credentialsProvider;
+    TransferUtility transferUtility;
 
 
     @Override
@@ -75,6 +88,7 @@ public class MainActivity extends AppCompatActivity {
        // startService(sint);
         dstart = (Button)findViewById(R.id.startdatabase);
         dstop = (Button)findViewById(R.id.stopdatabase);
+        uppercentage=(TextView)findViewById(R.id.percentage);
         dstart.setOnClickListener(dstartOnClickListener);
         dstop.setOnClickListener(dstopOnClickListener);
 
@@ -106,9 +120,17 @@ public class MainActivity extends AppCompatActivity {
 
         sendTextToWear();
 
-        Firebase.setAndroidContext(this);
-        mref = new Firebase("https://vivid-inferno-836.firebaseio.com/");
-            // other setup code
+        credentialsProvider = new CognitoCachingCredentialsProvider(
+                getApplicationContext(),
+                "us-east-1:ae22f8ae-d55e-4c00-877c-04629a3bdb25", // Identity Pool ID
+                Regions.US_EAST_1 // Region
+        );
+
+        s3= new AmazonS3Client(credentialsProvider); // Set the region of your S3 bucket
+        s3.setRegion(Region.getRegion(Regions.US_WEST_2));
+
+        //Firebase.setAndroidContext(this);
+        //mref = new Firebase("https://vivid-inferno-836.firebaseio.com/");
 
         //databaseHelper=new TimeListDatabaseHelper(this);
 //        TimeTrackerOpenHelper openHelper=new TimeTrackerOpenHelper(this);
@@ -161,6 +183,7 @@ public class MainActivity extends AppCompatActivity {
         File fo=new File(outpathtemp);
         FileInputStream fis=null;
         FileOutputStream fos=null;
+        transamazon(pathtemp);
 
         try
         {
@@ -359,6 +382,36 @@ public class MainActivity extends AppCompatActivity {
             sign=0;
             sendTextToWear();
         }
+    }
+
+    public void transamazon(String f)
+    {
+        File upfile=new File(f);
+        transferUtility = new TransferUtility(s3, getApplicationContext());
+        TransferObserver observer = transferUtility.upload(
+                "yuanautism3",     /* The bucket to upload to */
+                "test",    /* The key for the uploaded object */
+                upfile        /* The file where the data to upload exists */
+        );
+        observer.setTransferListener(new TransferListener(){
+
+            @Override
+            public void onStateChanged(int id, TransferState state) {
+                // do something
+            }
+
+            @Override
+            public void onProgressChanged(int id, long bytesCurrent, long bytesTotal) {
+                int percentage = (int) (bytesCurrent/bytesTotal * 100);
+                uppercentage.setText(percentage+"%");
+            }
+
+            @Override
+            public void onError(int id, Exception ex) {
+                // do something
+            }
+
+        });
     }
 }
 

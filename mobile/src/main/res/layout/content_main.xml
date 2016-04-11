@@ -244,4 +244,13 @@
         android:layout_x="2dp"
         android:layout_y="320dp" />
 
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="Percentage"
+        android:id="@+id/percentage"
+        android:layout_x="176dp"
+        android:layout_y="559dp" />
+
 </AbsoluteLayout>
