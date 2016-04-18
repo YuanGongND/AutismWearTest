@@ -7,7 +7,17 @@ import android.net.Uri;
 import android.os.IBinder;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
+import android.widget.TextView;
 
+import com.amazonaws.auth.CognitoCachingCredentialsProvider;
+import com.amazonaws.mobileconnectors.s3.transferutility.TransferListener;
+import com.amazonaws.mobileconnectors.s3.transferutility.TransferObserver;
+import com.amazonaws.mobileconnectors.s3.transferutility.TransferState;
+import com.amazonaws.mobileconnectors.s3.transferutility.TransferUtility;
+import com.amazonaws.regions.Region;
+import com.amazonaws.regions.Regions;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3Client;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.data.FreezableUtils;
@@ -24,6 +34,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -32,6 +43,10 @@ import java.util.concurrent.TimeUnit;
 public class DataLayerListenerServicePhone extends WearableListenerService {
     private GoogleApiClient mGoogleApiClient;
     int TIMEOUT_MS=1000;
+    TextView uppercentage;
+    AmazonS3 s3;
+    CognitoCachingCredentialsProvider credentialsProvider;
+    TransferUtility transferUtility;
     public void onCreate() {
 
         super.onCreate();
@@ -39,6 +54,14 @@ public class DataLayerListenerServicePhone extends WearableListenerService {
                 .addApi(Wearable.API)
                 .build();
         mGoogleApiClient.connect();
+        credentialsProvider = new CognitoCachingCredentialsProvider(
+                getApplicationContext(),
+                "us-east-1:ae22f8ae-d55e-4c00-877c-04629a3bdb25", // Identity Pool ID
+                Regions.US_EAST_1 // Region
+        );
+
+        s3= new AmazonS3Client(credentialsProvider); // Set the region of your S3 bucket
+        s3.setRegion(Region.getRegion(Regions.US_WEST_2));
 
     }
 
@@ -67,8 +90,8 @@ public class DataLayerListenerServicePhone extends WearableListenerService {
                 final DataMap map = DataMapItem
                         .fromDataItem(event.getDataItem()).getDataMap();
                 // read values from datalayer:
-                Long X = map.getLong("touchX");
-                Long Y = map.getLong("touchY");
+                int X = map.getInt("touchX");
+                int Y = map.getInt("touchY");
                 float speed=map.getFloat("speed");
                 float a_x=map.getFloat("acx");
                 float a_y=map.getFloat("acy");
@@ -116,6 +139,37 @@ public class DataLayerListenerServicePhone extends WearableListenerService {
         }
     }
 
+
+    private void transamazons(String f,String name)
+    {
+        File upfile=new File(f);
+        transferUtility = new TransferUtility(s3, getApplicationContext());
+        TransferObserver observer = transferUtility.upload(
+                "yuanautism3",     /* The bucket to upload to */
+                name,    /* The key for the uploaded object */
+                upfile        /* The file where the data to upload exists */
+        );
+        observer.setTransferListener(new TransferListener(){
+
+            @Override
+            public void onStateChanged(int id, TransferState state) {
+                // do something
+            }
+
+            @Override
+            public void onProgressChanged(int id, long bytesCurrent, long bytesTotal) {
+                //int percentage = (int) (bytesCurrent/bytesTotal * 100);
+                //uppercentage.setText(percentage+"%");
+            }
+
+            @Override
+            public void onError(int id, Exception ex) {
+                // do something
+            }
+
+        });
+    }
+
     public void loadBitmapFromAsset(Asset asset) {
         if (asset == null) {
             throw new IllegalArgumentException("Asset must be non-null");
@@ -144,6 +198,12 @@ public class DataLayerListenerServicePhone extends WearableListenerService {
             OutputStream outStream = new FileOutputStream(testrcd);
             outStream.write(buffer);
             Log.v("yuan-mobile", "written.");
+            SimpleDateFormat sdf=new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            java.util.Date date=new java.util.Date();
+            String timetemp=sdf.format(date);
+            String rcdname=timetemp+"-fromtablet.wav";
+            transamazons("/mnt/sdcard/yuan/testrcd.wav",rcdname);
+
 //        return BitmapFactory.decodeStream(assetInputStream);
         }catch (IOException e){}
     }

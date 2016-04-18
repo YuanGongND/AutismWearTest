@@ -4,4 +4,7 @@
     <string name="button_name">Start</string>
     <string name="map">layout</string>
     <string name="title_activity_view_event">ViewEventActivity</string>
+    <string name="title_activity_describe">Describe</string>
+    <string name="title_activity_rate1p">Rate1p</string>
+    <string name="title_activity_rate2p">Rate2p</string>
 </resources>

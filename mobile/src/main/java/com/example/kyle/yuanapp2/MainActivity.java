@@ -9,6 +9,7 @@ import android.content.IntentFilter;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.graphics.Color;
+import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
@@ -24,6 +25,7 @@ import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.app.NotificationCompat.WearableExtender;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.RadioButton;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -43,6 +45,8 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.PendingResult;
 import com.google.android.gms.wearable.DataApi;
 import com.google.android.gms.wearable.DataMap;
+import com.google.android.gms.wearable.MessageApi;
+import com.google.android.gms.wearable.MessageEvent;
 import com.google.android.gms.wearable.PutDataMapRequest;
 import com.google.android.gms.wearable.PutDataRequest;
 import com.google.android.gms.wearable.Wearable;
@@ -53,9 +57,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 
-public class MainActivity extends AppCompatActivity {
+import com.example.kyle.yuanapp2.VibratorUtil;
 
-    public static int sign=0;
+public class MainActivity extends AppCompatActivity implements MessageApi.MessageListener,GoogleApiClient.ConnectionCallbacks,GoogleApiClient.OnConnectionFailedListener {
+
+    public int sign=0;
     public String databasename,timetemp,pathtemp,outpathtemp;
     Boolean databaserecording=false;
     private BroadcastReceiver mResultReceiver;
@@ -64,10 +70,12 @@ public class MainActivity extends AppCompatActivity {
     private TimeListDatabaseHelper databaseHelper;
     public Firebase mref;
     Button dstart,dstop;
-    TextView uppercentage;
+    TextView uppercentage,messagesign;
     AmazonS3 s3;
     CognitoCachingCredentialsProvider credentialsProvider;
     TransferUtility transferUtility;
+    ImageView describep;
+    String DESCRIBE_PATH = "/voice_describe", RATE1_PATH = "/voice_rate1",RATE2_PATH = "/voice_rate2";
 
 
     @Override
@@ -89,37 +97,46 @@ public class MainActivity extends AppCompatActivity {
         dstart = (Button)findViewById(R.id.startdatabase);
         dstop = (Button)findViewById(R.id.stopdatabase);
         uppercentage=(TextView)findViewById(R.id.percentage);
+        messagesign=(TextView)findViewById(R.id.messagesign);
+        describep=(ImageView)findViewById(R.id.describep);
         dstart.setOnClickListener(dstartOnClickListener);
         dstop.setOnClickListener(dstopOnClickListener);
 
+
         mGoogleApiClient = new GoogleApiClient.Builder(this)
-                .addConnectionCallbacks(new GoogleApiClient.ConnectionCallbacks() {
-                    @Override
-                    public void onConnected(Bundle connectionHint) {
-                        Log.v("yuan-mobile", "Connection established");
-                    }
-                    @Override
-                    public void onConnectionSuspended(int cause) {
-                        Log.v("yuan-mobile", "Connection suspended");
-                    }
-                })
-                .addOnConnectionFailedListener(new GoogleApiClient.OnConnectionFailedListener() {
-                    @Override
-                    public void onConnectionFailed(ConnectionResult result) {
-                        Log.v("yuan-mobile", "Connection failed");
-                    }
-                })
                 .addApi(Wearable.API)
+                .addConnectionCallbacks(this)
+                .addOnConnectionFailedListener(this)
                 .build();
-        mGoogleApiClient.connect();
+                //.addConnectionCallbacks(new GoogleApiClient.ConnectionCallbacks() {
+                //   // @Override
+                //    public void onConnected(Bundle connectionHint) {
+                //        Log.v("yuan-mobile", "Connection established");
+                //        addmsg();
+                //    }
+
+                //    public void onConnectionSuspended(int cause) {
+                //        Log.v("yuan-mobile", "Connection suspended");
+                //    }
+                //})
+                //.addOnConnectionFailedListener(new GoogleApiClient.OnConnectionFailedListener() {
+                //    @Override
+                //    public void onConnectionFailed(ConnectionResult result) {
+                //        Log.v("yuan-mobile", "Connection failed");
+                //    }
+                //})
+                //.addApi(Wearable.API)
+                //.build();
+        //mGoogleApiClient.connect();
 
         mResultReceiver = createBroadcastReceiver();
         LocalBroadcastManager.getInstance(this).registerReceiver(
                 mResultReceiver,
                 new IntentFilter("phone.localIntent"));
 
-        sendTextToWear();
+        //sendTextToWear();
 
+        // Amazon S3 stuff
         credentialsProvider = new CognitoCachingCredentialsProvider(
                 getApplicationContext(),
                 "us-east-1:ae22f8ae-d55e-4c00-877c-04629a3bdb25", // Identity Pool ID
@@ -129,12 +146,56 @@ public class MainActivity extends AppCompatActivity {
         s3= new AmazonS3Client(credentialsProvider); // Set the region of your S3 bucket
         s3.setRegion(Region.getRegion(Regions.US_WEST_2));
 
+
+
+
         //Firebase.setAndroidContext(this);
         //mref = new Firebase("https://vivid-inferno-836.firebaseio.com/");
 
         //databaseHelper=new TimeListDatabaseHelper(this);
 //        TimeTrackerOpenHelper openHelper=new TimeTrackerOpenHelper(this);
     }
+
+    @Override
+    protected void onStart()
+    {
+        super.onStart();
+        mGoogleApiClient.connect();
+        sendTextToWear();
+        startService(new Intent(getBaseContext(), MessageService.class));
+    }
+
+    @Override
+    public void onConnected(Bundle bundle)
+    {
+        Wearable.MessageApi.addListener(mGoogleApiClient, this);
+        Log.v("yuan-mobile", "message established");
+    }
+
+    protected void onStop()
+    {
+        super.onStop();
+     //   Wearable.MessageApi.removeListener(mGoogleApiClient, this);
+    }
+
+    @Override
+    public void onConnectionFailed(ConnectionResult connectionResult) {
+
+    }
+
+    @Override
+    public void onConnectionSuspended(int i) {
+
+    }
+
+    @Override
+    public void onDestroy()
+    {
+        super.onDestroy();
+        Wearable.MessageApi.removeListener(mGoogleApiClient, this);
+        stopService(new Intent(getBaseContext(), MessageService.class));
+    }
+
 
     // database botton
     View.OnClickListener dstartOnClickListener
@@ -183,7 +244,7 @@ public class MainActivity extends AppCompatActivity {
         File fo=new File(outpathtemp);
         FileInputStream fis=null;
         FileOutputStream fos=null;
-        transamazon(pathtemp);
+        transamazon(pathtemp,"testdatabase");
 
         try
         {
@@ -384,13 +445,13 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public void transamazon(String f)
+    public void transamazon(String f,String name)
     {
         File upfile=new File(f);
         transferUtility = new TransferUtility(s3, getApplicationContext());
         TransferObserver observer = transferUtility.upload(
                 "yuanautism3",     /* The bucket to upload to */
-                "test",    /* The key for the uploaded object */
+                name,    /* The key for the uploaded object */
                 upfile        /* The file where the data to upload exists */
         );
         observer.setTransferListener(new TransferListener(){
@@ -412,6 +473,26 @@ public class MainActivity extends AppCompatActivity {
             }
 
         });
+    }
+
+    @Override
+    public void onMessageReceived(MessageEvent messageEvent) {
+        if (messageEvent.getPath().equals(DESCRIBE_PATH)) {
+            //messagesign.setText("Received");
+            //MediaPlayer mediaPlayer = MediaPlayer.create(this, R.raw.describe);
+            //mediaPlayer.start();
+            long[] vpattern = new long[4];
+            vpattern[0]=1000;
+            vpattern[1]=1000;
+            vpattern[2]=1000;
+            vpattern[3]=1000;
+            //VibratorUtil.Vibrate(this,vpattern,false);
+            //describep.setVisibility(View.VISIBLE);
+            //Intent startIntent = new Intent(this, MainActivity.class);
+            //startIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            //startIntent.putExtra("VOICE_DATA", messageEvent.getData());
+            //startActivity(startIntent);
+        }
     }
 }
 

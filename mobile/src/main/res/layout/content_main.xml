@@ -250,7 +250,25 @@
         android:textAppearance="?android:attr/textAppearanceLarge"
         android:text="Percentage"
         android:id="@+id/percentage"
-        android:layout_x="176dp"
+        android:layout_x="320dp"
         android:layout_y="559dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="Message not received"
+        android:id="@+id/messagesign"
+        android:layout_x="0dp"
+        android:layout_y="559dp" />
+
+    <ImageView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/describep"
+        android:src="@drawable/describep"
+        android:visibility="invisible"
+        android:layout_x="0dp"
+        android:layout_y="510dp" />
 
 </AbsoluteLayout>

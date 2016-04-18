@@ -8,6 +8,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.graphics.Color;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -21,20 +22,37 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.IBinder;
+import android.speech.RecognizerIntent;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.wearable.view.WatchViewStub;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.amazonaws.auth.CognitoCachingCredentialsProvider;
+import com.amazonaws.mobileconnectors.s3.transferutility.TransferListener;
+import com.amazonaws.mobileconnectors.s3.transferutility.TransferObserver;
+import com.amazonaws.mobileconnectors.s3.transferutility.TransferState;
+import com.amazonaws.mobileconnectors.s3.transferutility.TransferUtility;
+import com.amazonaws.regions.Region;
+import com.amazonaws.regions.Regions;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3Client;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.PendingResult;
+import com.google.android.gms.common.api.Result;
+import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.wearable.Asset;
+import com.google.android.gms.wearable.CapabilityApi;
+import com.google.android.gms.wearable.CapabilityInfo;
 import com.google.android.gms.wearable.DataApi;
 import com.google.android.gms.wearable.DataMap;
+import com.google.android.gms.wearable.MessageApi;
+import com.google.android.gms.wearable.Node;
 import com.google.android.gms.wearable.PutDataMapRequest;
 import com.google.android.gms.wearable.PutDataRequest;
 import com.google.android.gms.wearable.Wearable;
@@ -51,13 +69,23 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.text.SimpleDateFormat;
+import java.util.List;
+import java.util.Set;
+//import java.util.logging.Handler;
+import android.os.Handler;
+
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.logging.Logger;
+import com.example.kyle.yuanapp2.VibrateUtil;
+
 
 
 public class MainActivity extends Activity implements HeartbeatService.OnChangeListener,SensorEventListener { //must implement listener to service
 
-    Button startRec, stopRec, playBack;
-    TextView mText;
+    Button startRec,MSG,stopRec, playBack,upLoad;
+    TextView mText,level;
     Boolean recording;
     private GoogleApiClient mGoogleApiClient;
     BroadcastReceiver mResultReceiver;
@@ -66,38 +94,59 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
     private long lastUpdate,glastUpdate;
     private float last_x, last_y, last_z,last_gx, last_gy, last_gz;
     private static final int SHAKE_THRESHOLD = 1000;
-    long sum = 0;
-    long hrt=0;
+    int vadsum = 0,hrt=0;
+    long sum=0,sumhrt,sumvad;
     float speed=0,gspeed=0;
     ServiceConnection hrtt;
     Intent hrtintent;
     int minBufferSize;
     byte RECODERRDER_BPP=8;
-    String AUDIO_RECORDER_FOLDER = "YuanAudioRecorder";
+    String AUDIO_RECORDER_FOLDER = "YuanAudioRecorderTest";
     String AUDIO_RECORDER_TEMP_FILE = "record_temp_yuan.pcm";
     String AUDIO_RECORDER_FILE_EXT_WAV = ".wav";
     String sfilepath;
     int samplerate=44100;
     int samplebit=16;
+    String VOICE_TRANSCRIPTION_CAPABILITY_NAME = "voice_transcription", transcriptionNodeId = null;
+    String DESCRIBE_PATH = "/voice_describe", RATE1_PATH = "/voice_rate1",RATE2_PATH = "/voice_rate2";
+
+
+    AmazonS3 s3;
+    CognitoCachingCredentialsProvider credentialsProvider;
+    TransferUtility transferUtility;
+    TextView uppercentage;
+    int percentage;
+
+    int monitorsample=720,imonitor=0;
+    int[] monitorarrayvad =new int[monitorsample];
+    int[] monitorarrayhrt=new int[monitorsample];
+    int SPEECH_REQUEST_CODE = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.round_activity_main);
         startRec = (Button)findViewById(R.id.start);
+        MSG=(Button)findViewById(R.id.MSG);
         stopRec = (Button)findViewById(R.id.stop);
         playBack = (Button)findViewById(R.id.play);
+        upLoad=(Button)findViewById(R.id.upload);
         mText=(TextView)findViewById(R.id.heartrate);
+        uppercentage=(TextView)findViewById(R.id.percentage);
+        level=(TextView)findViewById(R.id.level);
         Log.v("yuan-wear", "wear started");
 
         senSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         senAccelerometer = senSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        senSensorManager.registerListener(this, senAccelerometer , SensorManager.SENSOR_DELAY_NORMAL);
+        senSensorManager.registerListener(this, senAccelerometer, SensorManager.SENSOR_DELAY_NORMAL);
         Log.v("yuan-wear", "acelerometer started");
 
         startRec.setOnClickListener(startRecOnClickListener);
+        MSG.setOnClickListener(MSGClickListener);
         stopRec.setOnClickListener(stopRecOnClickListener);
         playBack.setOnClickListener(playBackOnClickListener);
+        upLoad.setOnClickListener(uploadRecOnClickListener);
+
 
 
         mGoogleApiClient = new GoogleApiClient.Builder(this)
@@ -145,6 +194,15 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
         hrtintent=new Intent(MainActivity.this, HeartbeatService.class); //build intent, still not start, start in the onrecord
         //bindService(hrtintent,hrtt, Service.BIND_AUTO_CREATE);
        // this.unbindService(hrtt);
+
+        credentialsProvider = new CognitoCachingCredentialsProvider(
+                getApplicationContext(),
+                "us-east-1:ae22f8ae-d55e-4c00-877c-04629a3bdb25", // Identity Pool ID
+                Regions.US_EAST_1 // Region
+        );
+
+        s3= new AmazonS3Client(credentialsProvider); // Set the region of your S3 bucket
+        s3.setRegion(Region.getRegion(Regions.US_WEST_2));
     }
 
 
@@ -153,8 +211,8 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
             = new View.OnClickListener(){
         @Override
         public void onClick(View arg0) {
-            startRec.setClickable(false);
-            stopRec.setClickable(true);
+            startRec.setEnabled(false);
+            stopRec.setEnabled(true);
             Thread recordThread = new Thread(new Runnable(){
                 @Override
                 public void run() {
@@ -162,9 +220,18 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
                     startRecord();  // inside,also start heart rate service by binding service
                 }
             });
-            testwear2mobile(sum);
+            testwear2mobile(vadsum);
             Toast.makeText(getApplicationContext(), "information sent ", Toast.LENGTH_SHORT).show();
             recordThread.start();
+        }};
+
+    View.OnClickListener MSGClickListener
+            = new View.OnClickListener(){
+        @Override
+        public void onClick(View arg0) {
+
+            SendMessageToHand();
+
         }};
 
     //inner class button, start
@@ -172,14 +239,28 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
             = new View.OnClickListener(){
         @Override
         public void onClick(View arg0) {
-            startRec.setClickable(true);
-            stopRec.setClickable(false);
+            startRec.setEnabled(true);
+            stopRec.setEnabled(false);
             recording = false;
             hrt=0;
             sum=0;
             stophrt();  // stop heart rate service
+
+            //String displayfilepath = Environment.getExternalStorageDirectory().getPath();
+            //File displayfile = new File(displayfilepath,AUDIO_RECORDER_FOLDER);
+            //uppercentage.setText(displayfile.length() + " wait upload");
+
             Log.d("yuan-wear", "plan to stop heart rate service.");
         }};
+
+    View.OnClickListener uploadRecOnClickListener
+            = new View.OnClickListener() {
+        public void onClick(View arg0) {
+            String filepath = Environment.getExternalStorageDirectory().getPath();
+            File file = new File(filepath,AUDIO_RECORDER_FOLDER);
+            uploadFolderFile(file);
+        }
+    };
 
     //inner class button, play ,currently useless code
     View.OnClickListener playBackOnClickListener
@@ -200,13 +281,14 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
     }
 
     // send related information to handheld device
-    public void testwear2mobile(long xm)
+    public void testwear2mobile(int vad)
     {
+        int ic;
         final PutDataMapRequest putRequest =
                 PutDataMapRequest.create("/WEAR2PHONE");
         final DataMap map = putRequest.getDataMap();
-        map.putLong("touchX", xm);
-        map.putLong("touchY", hrt);
+        map.putInt("touchX", vad);
+        map.putInt("touchY", hrt);
         map.putFloat("speed", speed);
         map.putFloat("acx", last_x);
         map.putFloat("acy", last_y);
@@ -218,7 +300,235 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
         Wearable.DataApi.putDataItem(mGoogleApiClient,
                 putRequest.asPutDataRequest());
         Log.v("yuan-wear", "information sent");
+
+        if(imonitor<monitorsample) {
+            monitorarrayvad[imonitor] = vad;
+            monitorarrayhrt[imonitor] = hrt;
+            imonitor = imonitor + 1;
+        }
+        if(imonitor==monitorsample)
+        {
+            imonitor=0;
+            for (ic=0;ic<monitorsample;ic++)
+            {
+                sumhrt=sumhrt+monitorarrayhrt[ic];
+                sumvad=sumvad+monitorarrayvad[ic];
+            }
+            if(sumhrt>36000&&sumvad>1440000)
+            {
+                //recording=false;
+                SendMessageToHand();
+            }
+            Log.v("yuan-wear","vad sum="+sumvad+"hrt sum="+sumhrt);
+            sumhrt=0;sumvad=0;
+        }
     }
+
+    private void SendMessageToHand()
+    {
+        Log.v("yuan-wear", "msg prepared");
+
+        new Timer().schedule(
+                new TimerTask() {
+                    @Override
+                    public void run() {
+                        byte[] tempmsg = new byte[2];
+                        tempmsg[0] = 2;
+                        tempmsg[1] = 9;
+                        setupVoiceTranscription();
+                        requestTranscription(tempmsg, DESCRIBE_PATH);
+                        VibrateUtil.Vibrate(MainActivity.this, 1000);
+                        new Timer().schedule(
+                                new TimerTask() {
+                                    @Override
+                                    public void run() {
+                                        recording = false;
+                                        byte[] tempmsg = new byte[2];
+                                        tempmsg[0] = 2;
+                                        tempmsg[1] = 9;
+                                        setupVoiceTranscription();
+                                        requestTranscription(tempmsg, RATE1_PATH);
+                                        VibrateUtil.Vibrate(MainActivity.this, 1000);
+                                        new Timer().schedule(
+                                                new TimerTask() {
+                                                    @Override
+                                                    public void run() {
+                                                        byte[] tempmsg = new byte[2];
+                                                        tempmsg[0] = 2;
+                                                        tempmsg[1] = 9;
+                                                        setupVoiceTranscription();
+                                                        requestTranscription(tempmsg, RATE2_PATH);
+                                                        VibrateUtil.Vibrate(MainActivity.this, 1000);
+                                                        new Timer().schedule(
+                                                                new TimerTask() {
+                                                                    @Override
+                                                                    public void run() {
+                                                                        displaySpeechRecognizer();
+                                                                    }
+                                                                },
+                                                                3000
+                                                        );
+                                                    }
+                                                },
+                                                15000
+                                        );
+                                    }
+                                },
+                                15000
+                        );
+                    }
+                },
+                1000
+        );
+        /*
+        new Handler().postDelayed(new Runnable() {
+            public void run() {
+                recording = true;
+                startRecord();
+                byte[] tempmsg = new byte[2];
+                tempmsg[0]=2;
+                tempmsg[1]=9;
+                setupVoiceTranscription();
+                requestTranscription(tempmsg, DESCRIBE_PATH);
+                VibrateUtil.Vibrate(MainActivity.this,1000);
+            }
+        }, 10000);
+
+        Runnable runnable1 = new Runnable() {
+            @Override
+            public void run() {
+                recording = true;
+                startRecord();
+                byte[] tempmsg = new byte[2];
+                tempmsg[0]=2;
+                tempmsg[1]=9;
+                setupVoiceTranscription();
+                requestTranscription(tempmsg, DESCRIBE_PATH);
+                VibrateUtil.Vibrate(MainActivity.this,1000);
+            }
+        };
+        Handler handler1 = new Handler();
+        handler1.postDelayed(runnable1, 10000);
+
+        Thread th1=new Thread(){
+            public void run() {
+                recording = true;
+                startRecord();
+                byte[] tempmsg = new byte[2];
+                tempmsg[0]=2;
+                tempmsg[1]=9;
+                setupVoiceTranscription();
+                requestTranscription(tempmsg, DESCRIBE_PATH);
+                VibrateUtil.Vibrate(MainActivity.this,1000);
+            }
+        };
+       // th1.start();
+        Log.v("yuan-wear", "time1");
+
+        new Timer().schedule(
+                new TimerTask() {
+                    @Override
+                    public void run() {
+                        recording = true;
+                        startRecord();
+                        byte[] tempmsg = new byte[2];
+                        tempmsg[0] = 2;
+                        tempmsg[1] = 9;
+                        setupVoiceTranscription();
+                        requestTranscription(tempmsg, DESCRIBE_PATH);
+                        VibrateUtil.Vibrate(MainActivity.this, 1000);
+                    }
+                },
+                10000
+        );
+
+        Log.v("yuan-wear", "time2");
+        new Timer().schedule(
+                new TimerTask() {
+                    @Override
+                    public void run() {
+                        byte[] tempmsg = new byte[2];
+                        tempmsg[0] = 2;
+                        tempmsg[1] = 9;
+                        setupVoiceTranscription();
+                        requestTranscription(tempmsg, RATE1_PATH);
+                        recording = Boolean.FALSE;
+                    }
+                },
+                30000
+        );
+        Log.v("yuan-wear", "time3");
+       */
+    }
+
+    private void setupVoiceTranscription() {
+        CapabilityApi.GetCapabilityResult result =
+                Wearable.CapabilityApi.getCapability(
+                        mGoogleApiClient, VOICE_TRANSCRIPTION_CAPABILITY_NAME,
+                        CapabilityApi.FILTER_REACHABLE).await();
+                Log.v("yuan-wear", "msg" + result);
+                        //.setResultCallback(new ResultCallback<CapabilityApi.GetCapabilityResult>()
+               // {
+               //     public String onResult(CapabilityApi.GetCapabilityResult sendMessageResult) {
+               //         Log.v("yuan-mobile", "Sent message");
+               //     }
+               // });
+        updateTranscriptionCapability(result.getCapability());
+
+        CapabilityApi.CapabilityListener capabilityListener =
+                new CapabilityApi.CapabilityListener() {
+                    @Override
+                    public void onCapabilityChanged(CapabilityInfo capabilityInfo) {
+                        updateTranscriptionCapability(capabilityInfo);
+                    }
+                };
+
+        Wearable.CapabilityApi.addCapabilityListener(
+                mGoogleApiClient,
+                capabilityListener,
+                VOICE_TRANSCRIPTION_CAPABILITY_NAME);
+    }
+
+    private void updateTranscriptionCapability(CapabilityInfo capabilityInfo) {
+        Set<Node> connectedNodes = capabilityInfo.getNodes();
+
+        transcriptionNodeId = pickBestNodeId(connectedNodes);
+        Log.v("yuan-wear", "msg" + transcriptionNodeId);
+    }
+
+    private String pickBestNodeId(Set<Node> nodes) {
+        String bestNodeId = null;
+        // Find a nearby node or pick one arbitrarily
+        for (Node node : nodes) {
+            if (node.isNearby()) {
+                return node.getId();
+            }
+            bestNodeId = node.getId();
+        }
+        Log.v("yuan-wear", "msg" + bestNodeId);
+        return bestNodeId;
+    }
+
+    private void requestTranscription(byte[] voiceData,String Path) {
+        if (transcriptionNodeId != null) {
+            Log.v("yuan-wear", "msg is sending");
+            Wearable.MessageApi.sendMessage(mGoogleApiClient, transcriptionNodeId,
+                    Path, voiceData).setResultCallback(
+                    new ResultCallback<MessageApi.SendMessageResult>() {
+                        public void onResult(MessageApi.SendMessageResult sendMessageResult) {
+                            if (!sendMessageResult.getStatus().isSuccess()) {
+                                // Failed to send message
+                                Log.v("yuan-wear", "msg failed to sent");
+                            }
+                        }
+                    }
+            );
+        } else {
+            // Unable to retrieve node with transcription capability
+        }
+    }
+
+
 
     private byte[] shortToByteArray(short s) {
         byte[] shortBuf = new byte[2];
@@ -229,6 +539,7 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
         return shortBuf;
     }
     //start recording,inside realize the heart rate
+
     private void startRecord() {
         bindService(hrtintent, hrtt, Service.BIND_AUTO_CREATE);
         Log.v("yuan-wear", "service rebinded");
@@ -272,17 +583,22 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
                     sum += audioData[i]*audioData[i];
                 }
                 sum=(long)sum/numberOfShort;
-                testwear2mobile(sum);
-                sum=0;
+                vadsum=(int)sum;
+                testwear2mobile(vadsum);
+                sum=0;vadsum=0;
             }
 
             audioRecord.stop();
             audioRecord.release();
             long lengthbefore=file.length();
-            Log.i("yuan-wear", "the length before converting to wav="+lengthbefore);
+            Log.i("yuan-wear", "the length before converting to wav=" + lengthbefore);
             copyWaveFile(getTempFilename(), getFilename());
             deleteTempFile();
             SendRecording();
+            transamazon(sfilepath);
+
+
+
             runOnUiThread(new Runnable() {
                 public void run() {
                     Toast.makeText(getApplicationContext(), "stored in /storage/emulated/0/testyuan.pcm ", Toast.LENGTH_SHORT).show();
@@ -352,7 +668,7 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
     public void onValueChanged(int newValue) {
         // will be called by the service whenever the heartbeat value changes.
         mText.setText(Integer.toString(newValue));
-        hrt=(long)newValue;
+        hrt=newValue;
     }
 
     @Override
@@ -437,7 +753,7 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
      //   Toast.makeText(getApplicationContext(), file.getAbsolutePath() + "/" + System.currentTimeMillis() + AUDIO_RECORDER_FILE_EXT_WAV, Toast.LENGTH_SHORT).show();
         Log.v("yuan-wear", file.getAbsolutePath() + "/" + System.currentTimeMillis() + AUDIO_RECORDER_FILE_EXT_WAV);
         sfilepath=file.getAbsolutePath() + "/" + System.currentTimeMillis() + AUDIO_RECORDER_FILE_EXT_WAV;
-        return (file.getAbsolutePath() + "/" + System.currentTimeMillis() + AUDIO_RECORDER_FILE_EXT_WAV);
+        return (file.getAbsolutePath() + "/" +System.currentTimeMillis() + AUDIO_RECORDER_FILE_EXT_WAV);
     }
 
     private void deleteTempFile() {
@@ -574,4 +890,86 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
 
         out.write(header, 0, 44);
     }
+
+    public void transamazon(String f)
+    {
+        File upfile=new File(f);
+
+        SimpleDateFormat sdf=new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        java.util.Date date=new java.util.Date();
+        String timetemp=sdf.format(date);
+        String rcdname=timetemp+".wav";
+
+        transferUtility = new TransferUtility(s3, getApplicationContext());
+        TransferObserver observer = transferUtility.upload(
+                "yuanautism3",     /* The bucket to upload to */
+                rcdname,    /* The key for the uploaded object */
+                upfile        /* The file where the data to upload exists */
+        );
+        observer.setTransferListener(new TransferListener() {
+
+            @Override
+            public void onStateChanged(int id, TransferState state) {
+                // do something
+            }
+
+            @Override
+            public void onProgressChanged(int id, long bytesCurrent, long bytesTotal) {
+                percentage = (int) (bytesCurrent / (bytesTotal) * 100);
+                uppercentage.setText(percentage + "% uploaded");
+            }
+
+            @Override
+            public void onError(int id, Exception ex) {
+                // do something
+            }
+
+        });
+    }
+
+    public void uploadFolderFile(File file) {
+        if (true) {
+            try {
+                if (file.isDirectory()) {// 处理目录
+                    File files[] = file.listFiles();
+                    for (int i = 0; i < files.length; i++) {
+                        transamazon(files[i].getAbsolutePath());
+                        File tempde=new File(files[i].getAbsolutePath());
+                 //       tempde.delete();
+                    }
+                }
+            } catch (Exception e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void displaySpeechRecognizer() {
+        Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+// Start the activity, the intent will be populated with the speech text
+        startActivityForResult(intent, SPEECH_REQUEST_CODE);
+    }
+
+    // This callback is invoked when the Speech Recognizer returns.
+// This is where you process the intent and extract the speech text from the intent.
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode,
+                                    Intent data) {
+        if (requestCode == SPEECH_REQUEST_CODE && resultCode == RESULT_OK) {
+            List<String> results = data.getStringArrayListExtra(
+                    RecognizerIntent.EXTRA_RESULTS);
+            final String spokenText = results.get(0);
+            runOnUiThread(new Runnable() {
+                public void run() {
+                    level.setText("Current Anxious Level="+spokenText);
+                }
+            });
+
+        }
+        super.onActivityResult(requestCode, resultCode, data);
+    }
 }
+

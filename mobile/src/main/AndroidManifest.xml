@@ -6,7 +6,7 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
         android:allowBackup="true"
@@ -38,17 +38,31 @@
             android:name="com.google.android.gms.version"
             android:value="@integer/google_play_services_version" />
 
-        <service
-            android:name=".DataLayerListenerServicePhone">
+        <service android:name=".DataLayerListenerServicePhone">
             <intent-filter>
                 <action android:name="com.google.android.gms.wearable.BIND_LISTENER" />
             </intent-filter>
         </service>
-
         <service
             android:name="com.amazonaws.mobileconnectors.s3.transferutility.TransferService"
             android:enabled="true" />
+        <service
+            android:name=".MessageService"
+            android:enabled="true"
+            android:exported="true" />
 
+        <activity
+            android:name=".Describe"
+            android:label="@string/title_activity_describe"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name=".Rate1p"
+            android:label="@string/title_activity_rate1p"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name=".Rate2p"
+            android:label="@string/title_activity_rate2p"
+            android:theme="@style/AppTheme.NoActionBar"></activity>
     </application>
 
 </manifest>

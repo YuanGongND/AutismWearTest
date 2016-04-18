@@ -3,54 +3,103 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@android:color/holo_blue_dark"
+    android:background="@android:color/white"
     tools:context="com.example.kyle.yuanapp2.MainActivity"
     tools:deviceIds="wear_round">
 
     <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="80dp"
+        android:layout_height="40dp"
         android:text="Start"
-        android:textColor="@android:color/holo_red_dark"
-        android:colar="@android:color/black"
+        android:textColor="@android:color/black"
         android:id="@+id/start"
         android:clickable="true"
         android:onClick="StartRecording"
-        android:layout_x="224dp"
-        android:layout_y="261dp" />
+        android:gravity="left"
+        android:layout_x="40dp"
+        android:layout_y="40dp" />
 
     <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:text="MSG"
+        android:textColor="@android:color/black"
+        android:id="@+id/MSG"
+        android:clickable="true"
+        android:onClick="Sending Message"
+        android:gravity="left"
+        android:layout_x="140dp"
+        android:layout_y="40dp" />
+
+
+    <Button
+        android:layout_width="110dp"
+        android:layout_height="40dp"
         android:text="Stop"
-        android:clickable="false"
-        android:textColor="#CC0000"
+        android:enabled="false"
+        android:textColor="@android:color/black"
         android:id="@+id/stop"
-        android:layout_x="104dp"
-        android:layout_y="251dp" />
+        android:gravity="left"
+        android:layout_x="40dp"
+        android:layout_y="80dp" />
 
     <Button
-        android:layout_width="133dp"
-        android:layout_height="130dp"
+        android:layout_width="140dp"
+        android:layout_height="40dp"
+        android:text="Upload"
+        android:textColor="@android:color/black"
+        android:id="@+id/upload"
+        android:enabled="true"
+        android:layout_marginTop="57dp"
+        android:layout_x="40dp"
+        android:gravity="left"
+        android:layout_y="120dp" />
+
+    <Button
+        android:layout_width="1dp"
+        android:layout_height="wrap_content"
         android:text="Play"
         android:textColor="#CC0000"
         android:id="@+id/play"
-        android:layout_below="@+id/stop"
-        android:layout_centerHorizontal="true"
         android:layout_marginTop="57dp"
-        android:layout_x="40dp"
-        android:layout_y="41dp" />
+        android:layout_x="200dp"
+        android:layout_y="200dp" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceLarge"
         android:text="Heart Rate"
+        android:textColor="@android:color/black"
         android:id="@+id/heartrate"
-        android:layout_below="@+id/stop"
-        android:layout_alignEnd="@+id/play"
+        android:textSize="10dp"
         android:layout_marginTop="19dp"
-        android:layout_x="54dp"
-        android:layout_y="169dp" />
+        android:layout_x="44dp"
+        android:layout_y="32dp" />
+
+    <TextView
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:textAppearance="?android:attr/textAppearanceLarge"
+    android:text="No Upload Task"
+    android:textColor="@android:color/black"
+    android:id="@+id/percentage"
+    android:textSize="10dp"
+    android:layout_marginTop="19dp"
+    android:layout_x="44dp"
+    android:layout_y="115dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="Anxious Level"
+        android:textColor="@android:color/black"
+        android:id="@+id/level"
+        android:textSize="10dp"
+        android:layout_marginTop="19dp"
+        android:layout_x="44dp"
+        android:layout_y="155dp" />
+
 
 </AbsoluteLayout>
