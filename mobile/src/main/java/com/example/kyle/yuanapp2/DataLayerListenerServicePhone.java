@@ -193,14 +193,16 @@ public class DataLayerListenerServicePhone extends WearableListenerService {
             byte[] buffer = new byte[assetInputStream.available()];
             assetInputStream.read(buffer);
 
-            String outpathtemp = "/mnt/sdcard/yuan/testrcd.wav";
+            SimpleDateFormat sdf=new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            java.util.Date date=new java.util.Date();
+            String timetemp=sdf.format(date);
+
+            String outpathtemp = "/mnt/sdcard/yuan/"+timetemp+".wav";
             File testrcd = new File(outpathtemp);
             OutputStream outStream = new FileOutputStream(testrcd);
             outStream.write(buffer);
             Log.v("yuan-mobile", "written.");
-            SimpleDateFormat sdf=new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-            java.util.Date date=new java.util.Date();
-            String timetemp=sdf.format(date);
+
             String rcdname=timetemp+"-fromtablet.wav";
             transamazons("/mnt/sdcard/yuan/testrcd.wav",rcdname);
 

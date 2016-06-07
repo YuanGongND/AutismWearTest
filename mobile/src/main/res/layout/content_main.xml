@@ -96,7 +96,7 @@
         android:layout_above="@+id/checkBox"
         android:layout_alignEnd="@+id/button5"
         android:layout_x="0dp"
-        android:layout_y="480dp" />
+        android:layout_y="340dp" />
 
     <Button
         android:layout_width="wrap_content"
@@ -108,18 +108,24 @@
         android:layout_alignBottom="@+id/startdatabase"
         android:layout_toEndOf="@+id/startdatabase"
         android:layout_x="160dp"
-        android:layout_y="480dp" />
+        android:layout_y="340dp" />
+
+    <Button
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:text="Apply Setting"
+    android:id="@+id/button5"
+    android:layout_marginTop="36dp"
+    android:layout_x="320dp"
+    android:layout_y="480dp" />
 
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Apply Setting"
-        android:id="@+id/button5"
-        android:layout_below="@+id/a_z"
-        android:layout_alignParentStart="true"
-        android:layout_marginTop="36dp"
-        android:layout_x="320dp"
-        android:layout_y="480dp" />
+        android:text="Connect Band"
+        android:id="@+id/connectband"
+        android:layout_x="200dp"
+        android:layout_y="280dp" />
 
     <TextView
         android:layout_width="fill_parent"

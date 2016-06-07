@@ -3,15 +3,19 @@ package com.example.kyle.yuanapp2;
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.graphics.Color;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
+import android.os.IBinder;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v4.content.LocalBroadcastManager;
@@ -61,7 +65,8 @@ import com.example.kyle.yuanapp2.VibratorUtil;
 
 public class MainActivity extends AppCompatActivity implements MessageApi.MessageListener,GoogleApiClient.ConnectionCallbacks,GoogleApiClient.OnConnectionFailedListener {
 
-    public int sign=0;
+    public int sign=0,gsrValue;
+    public float bodyTempValue=0;
     public String databasename,timetemp,pathtemp,outpathtemp;
     Boolean databaserecording=false;
     private BroadcastReceiver mResultReceiver;
@@ -69,13 +74,44 @@ public class MainActivity extends AppCompatActivity implements MessageApi.Messag
     private int mColorCount = 0;
     private TimeListDatabaseHelper databaseHelper;
     public Firebase mref;
-    Button dstart,dstop;
+    Button dstart,dstop,band;
     TextView uppercentage,messagesign;
     AmazonS3 s3;
     CognitoCachingCredentialsProvider credentialsProvider;
     TransferUtility transferUtility;
     ImageView describep;
     String DESCRIBE_PATH = "/voice_describe", RATE1_PATH = "/voice_rate1",RATE2_PATH = "/voice_rate2";
+
+    Intent bandgsrintent;
+    Intent bandBodyTempintent;
+
+    public GsrService.GsrServiceBinder gsrServiceBinder;
+
+    private ServiceConnection gsrconnection=new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            gsrServiceBinder=(GsrService.GsrServiceBinder)service;
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+
+        }
+    };
+
+    private BodyTempService.BodyTempServiceBinder bodyTempServiceBinder;
+
+    private ServiceConnection bodytempconnection=new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            bodyTempServiceBinder=(BodyTempService.BodyTempServiceBinder)service;
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+
+        }
+    };
 
 
     @Override
@@ -96,11 +132,24 @@ public class MainActivity extends AppCompatActivity implements MessageApi.Messag
        // startService(sint);
         dstart = (Button)findViewById(R.id.startdatabase);
         dstop = (Button)findViewById(R.id.stopdatabase);
+        band=(Button)findViewById(R.id.connectband);
         uppercentage=(TextView)findViewById(R.id.percentage);
         messagesign=(TextView)findViewById(R.id.messagesign);
         describep=(ImageView)findViewById(R.id.describep);
         dstart.setOnClickListener(dstartOnClickListener);
         dstop.setOnClickListener(dstopOnClickListener);
+        band.setOnClickListener(bandOnClickListener);
+
+        bandgsrintent=new Intent(MainActivity.this,GsrService.class);
+        bindService(bandgsrintent,gsrconnection,BIND_AUTO_CREATE);
+        Log.d("yuan-mobile","gsrservice bounded");
+
+        bandBodyTempintent=new Intent(MainActivity.this,BodyTempService.class);
+        bindService(bandBodyTempintent,bodytempconnection,BIND_AUTO_CREATE);
+        Log.d("yuan-mobile","temservice bounded");
+
+        //Intent rriIntent=new Intent(MainActivity.this,RRIService.class);
+        //startService(rriIntent);
 
 
         mGoogleApiClient = new GoogleApiClient.Builder(this)
@@ -191,9 +240,15 @@ public class MainActivity extends AppCompatActivity implements MessageApi.Messag
     @Override
     public void onDestroy()
     {
-        super.onDestroy();
+
         Wearable.MessageApi.removeListener(mGoogleApiClient, this);
         stopService(new Intent(getBaseContext(), MessageService.class));
+
+        unbindService(gsrconnection);
+        stopService(bandgsrintent);
+        unbindService(bodytempconnection);
+        stopService(bandBodyTempintent);
+        super.onDestroy();
     }
 
 
@@ -224,6 +279,16 @@ public class MainActivity extends AppCompatActivity implements MessageApi.Messag
             Toast.makeText(getApplicationContext(), "database saved", Toast.LENGTH_SHORT).show();
         }};
 
+    View.OnClickListener bandOnClickListener
+            = new View.OnClickListener(){
+        @Override
+        public void onClick(View arg0) {
+            unbindService(gsrconnection);
+            stopService(bandgsrintent);
+            unbindService(bodytempconnection);
+            stopService(bandBodyTempintent);
+        }};
+
 
     // create database
     public void creatdatabase()
@@ -239,9 +304,10 @@ public class MainActivity extends AppCompatActivity implements MessageApi.Messag
     public void writedatabase()
     {
         pathtemp="/data/data/com.example.kyle.yuanapp2/databases/"+databasename;
-        outpathtemp="/mnt/sdcard/yuan/"+databasename;
-        File f=new File(pathtemp);
-        File fo=new File(outpathtemp);
+        outpathtemp= Environment.getExternalStorageDirectory().getPath()+databasename;
+        File f=this.getDatabasePath(databasename);
+        //File f=new File(pathtemp);
+        File fo=new File(Environment.getExternalStorageDirectory(),databasename);
         FileInputStream fis=null;
         FileOutputStream fos=null;
         transamazon(pathtemp,"testdatabase");
@@ -373,6 +439,10 @@ public class MainActivity extends AppCompatActivity implements MessageApi.Messag
         return new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
+                gsrValue=gsrServiceBinder.getGsrValue();
+                Log.d("yuan-mobile","gsr="+gsrValue);
+                bodyTempValue=bodyTempServiceBinder.getBodyTempValue();
+                Log.d("yuan-mobile","bodyTemp= "+bodyTempValue);
                 updateTextFieldvad(intent.getStringExtra("vad"));
                 updateTextFieldhrt(intent.getStringExtra("hrt"));
                 updateTextFieldspd(intent.getStringExtra("spd"));
@@ -380,14 +450,14 @@ public class MainActivity extends AppCompatActivity implements MessageApi.Messag
                 updateTextFielday(intent.getStringExtra("ay"));
                 updateTextFieldaz(intent.getStringExtra("az"));
                 updateTextFieldgspd(intent.getStringExtra("gspd"));
-                updateTextFieldgx(intent.getStringExtra("gx"));
-                updateTextFieldgy(intent.getStringExtra("gy"));
+                updateTextFieldgx(intent.getStringExtra("gx")+gsrValue+"");
+                updateTextFieldgy(intent.getStringExtra("gy")+bodyTempValue+"");
                 updateTextFieldgz(intent.getStringExtra("gz"));
                 SimpleDateFormat sdf=new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
                 java.util.Date date=new java.util.Date();
                 timetemp=sdf.format(date);
                 if(databaserecording) {
-                    databaseHelper.saveTimeRecord(timetemp,intent.getLongExtra("vadvalue", 0), intent.getLongExtra("hrtvalue", 0), intent.getFloatExtra("axvalue", 0), intent.getFloatExtra("ayvalue", 0), intent.getFloatExtra("azvalue", 0));
+                    databaseHelper.saveTimeRecord(timetemp,intent.getIntExtra("vadvalue", 0), intent.getIntExtra("hrtvalue", 0), gsrValue, bodyTempValue, intent.getFloatExtra("azvalue", 0));
                 }
             }
         };

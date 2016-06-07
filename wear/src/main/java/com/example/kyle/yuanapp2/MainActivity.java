@@ -86,7 +86,7 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
 
     Button startRec,MSG,stopRec, playBack,upLoad;
     TextView mText,level;
-    Boolean recording;
+    Boolean recording=false,hrtsign=false,monitoring=false;
     private GoogleApiClient mGoogleApiClient;
     BroadcastReceiver mResultReceiver;
     private SensorManager senSensorManager;
@@ -95,6 +95,7 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
     private float last_x, last_y, last_z,last_gx, last_gy, last_gz;
     private static final int SHAKE_THRESHOLD = 1000;
     int vadsum = 0,hrt=0;
+
     long sum=0,sumhrt,sumvad;
     float speed=0,gspeed=0;
     ServiceConnection hrtt;
@@ -114,13 +115,17 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
     AmazonS3 s3;
     CognitoCachingCredentialsProvider credentialsProvider;
     TransferUtility transferUtility;
-    TextView uppercentage;
+    TextView uppercentage,queue;
     int percentage;
 
     int monitorsample=720,imonitor=0;
     int[] monitorarrayvad =new int[monitorsample];
     int[] monitorarrayhrt=new int[monitorsample];
     int SPEECH_REQUEST_CODE = 0;
+    int it,filelength;
+    int thresholdhrt=36000;
+
+    File files[];
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -133,6 +138,7 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
         upLoad=(Button)findViewById(R.id.upload);
         mText=(TextView)findViewById(R.id.heartrate);
         uppercentage=(TextView)findViewById(R.id.percentage);
+        queue=(TextView)findViewById(R.id.queue);
         level=(TextView)findViewById(R.id.level);
         Log.v("yuan-wear", "wear started");
 
@@ -206,6 +212,13 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
     }
 
 
+
+    @Override
+    protected void onStart()
+    {
+        super.onStart();
+        CalloadFolderFile(Environment.getExternalStorageDirectory().getPath() + "/" + AUDIO_RECORDER_FOLDER);
+    }
     // inner listener class,start recording button
     View.OnClickListener startRecOnClickListener
             = new View.OnClickListener(){
@@ -216,8 +229,8 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
             Thread recordThread = new Thread(new Runnable(){
                 @Override
                 public void run() {
-                    recording = true;
-                    startRecord();  // inside,also start heart rate service by binding service
+                    monitoring = true;
+                    startMonitor();  // inside,also start heart rate service by binding service
                 }
             });
             testwear2mobile(vadsum);
@@ -230,8 +243,8 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
         @Override
         public void onClick(View arg0) {
 
-            SendMessageToHand();
-
+            //SendMessageToHand();
+            thresholdhrt=72000;
         }};
 
     //inner class button, start
@@ -241,7 +254,7 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
         public void onClick(View arg0) {
             startRec.setEnabled(true);
             stopRec.setEnabled(false);
-            recording = false;
+            monitoring = false;
             hrt=0;
             sum=0;
             stophrt();  // stop heart rate service
@@ -256,9 +269,18 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
     View.OnClickListener uploadRecOnClickListener
             = new View.OnClickListener() {
         public void onClick(View arg0) {
+            Thread upload = new Thread(new Runnable(){
+                @Override
+                public void run() {
+                    String filepath = Environment.getExternalStorageDirectory().getPath();
+                    File file = new File(filepath,AUDIO_RECORDER_FOLDER);
+                    uploadFolderFiled(file);
+                }
+            });
+            upload.start();
             String filepath = Environment.getExternalStorageDirectory().getPath();
             File file = new File(filepath,AUDIO_RECORDER_FOLDER);
-            uploadFolderFile(file);
+            uploadFolderFiled(file);
         }
     };
 
@@ -275,9 +297,13 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
     // stop heart rate service
     public void stophrt()
     {
-        this.unbindService(hrtt);
-        this.stopService(hrtintent);
-        Log.d("yuan-wear", "stop heart rate service.");
+
+        if(hrtsign==true) {
+            this.unbindService(hrtt);
+            this.stopService(hrtintent);
+            Log.d("yuan-wear", "stop heart rate service.");
+            hrtsign=false;
+        }
     }
 
     // send related information to handheld device
@@ -288,6 +314,7 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
                 PutDataMapRequest.create("/WEAR2PHONE");
         final DataMap map = putRequest.getDataMap();
         map.putInt("touchX", vad);
+        Log.v("yuan-wear","vad="+vad);
         map.putInt("touchY", hrt);
         map.putFloat("speed", speed);
         map.putFloat("acx", last_x);
@@ -314,10 +341,38 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
                 sumhrt=sumhrt+monitorarrayhrt[ic];
                 sumvad=sumvad+monitorarrayvad[ic];
             }
-            if(sumhrt>36000&&sumvad>1440000)
+            Log.v("yuan-wear","sumvad="+sumvad);
+            Log.v("yuan-wear","sumhrt="+sumhrt);
+
+            if(sumvad>1440000)
             {
-                //recording=false;
-                SendMessageToHand();
+                if(hrtsign==false) {
+                    bindService(hrtintent, hrtt, Service.BIND_AUTO_CREATE);
+                    hrtsign = true;
+                }
+            }
+            if(sumvad<1440000)
+            {
+                if(hrtsign==true) {
+                    stophrt();
+                    hrtsign = false;
+                }
+            }
+            if(sumhrt>thresholdhrt&&sumvad>1440000)
+            {
+                if(hrtsign=true) {
+                    stophrt();
+                    monitoring=false;
+                    Thread recordThread = new Thread(new Runnable(){
+                        @Override
+                        public void run() {
+                            recording = true;
+                            startRecord();  // inside,also start heart rate service by binding service
+                        }
+                    });
+                    recordThread.start();
+                    SendMessageToHand();
+                }
             }
             Log.v("yuan-wear","vad sum="+sumvad+"hrt sum="+sumhrt);
             sumhrt=0;sumvad=0;
@@ -342,7 +397,7 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
                                 new TimerTask() {
                                     @Override
                                     public void run() {
-                                        recording = false;
+                                        //recording = false;
                                         byte[] tempmsg = new byte[2];
                                         tempmsg[0] = 2;
                                         tempmsg[1] = 9;
@@ -363,22 +418,39 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
                                                                 new TimerTask() {
                                                                     @Override
                                                                     public void run() {
+                                                                        recording=false;
                                                                         displaySpeechRecognizer();
+                                                                        new Timer().schedule(
+                                                                                new TimerTask() {
+                                                                                    @Override
+                                                                                    public void run() {
+                                                                                        Thread recordThread = new Thread(new Runnable(){
+                                                                                            @Override
+                                                                                            public void run() {
+                                                                                                monitoring = true;
+                                                                                                startMonitor();  // inside,also start heart rate service by binding service
+                                                                                            }
+                                                                                        });
+                                                                                        recordThread.start();
+                                                                                    }
+                                                                                },
+                                                                                30000
+                                                                        );
                                                                     }
                                                                 },
                                                                 3000
                                                         );
                                                     }
                                                 },
-                                                15000
+                                                10000
                                         );
                                     }
                                 },
-                                15000
+                                12000
                         );
                     }
                 },
-                1000
+                60000
         );
         /*
         new Handler().postDelayed(new Runnable() {
@@ -541,7 +613,9 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
     //start recording,inside realize the heart rate
 
     private void startRecord() {
-        bindService(hrtintent, hrtt, Service.BIND_AUTO_CREATE);
+       // bindService(hrtintent, hrtt, Service.BIND_AUTO_CREATE);
+        hrt=0;
+        sumvad=0;
         Log.v("yuan-wear", "service rebinded");
         String tfilename = getTempFilename();
         File file = new File(tfilename);
@@ -580,12 +654,12 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
                     dataOutputStream.writeByte(tempbyte[1]);
                     dataOutputStream.writeByte(tempbyte[0]);
                     //sum += Math.abs(audioData[i]);
-                    sum += audioData[i]*audioData[i];
+                   // sum += audioData[i]*audioData[i];
                 }
-                sum=(long)sum/numberOfShort;
-                vadsum=(int)sum;
-                testwear2mobile(vadsum);
-                sum=0;vadsum=0;
+                //sum=(long)sum/numberOfShort;
+                //vadsum=(int)sum;
+                //testwear2mobile(vadsum);
+                //sum=0;vadsum=0;
             }
 
             audioRecord.stop();
@@ -594,10 +668,9 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
             Log.i("yuan-wear", "the length before converting to wav=" + lengthbefore);
             copyWaveFile(getTempFilename(), getFilename());
             deleteTempFile();
-            SendRecording();
+            //SendRecording();
+            CalloadFolderFile(Environment.getExternalStorageDirectory().getPath() + "/" + AUDIO_RECORDER_FOLDER);
             transamazon(sfilepath);
-
-
 
             runOnUiThread(new Runnable() {
                 public void run() {
@@ -608,6 +681,80 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
             dataOutputStream.close();
 
         } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    private void startMonitor() {
+        // bindService(hrtintent, hrtt, Service.BIND_AUTO_CREATE);
+        hrt=0;
+        sumvad=0;
+        //Log.v("yuan-wear", "service rebinded");
+        //String tfilename = getTempFilename();
+        //File file = new File(tfilename);
+
+        try {
+            //file.createNewFile();
+            //OutputStream outputStream = new FileOutputStream(file);
+            //BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(outputStream);
+            //DataOutputStream dataOutputStream = new DataOutputStream(bufferedOutputStream);
+
+            minBufferSize = AudioRecord.getMinBufferSize(samplerate,
+                    AudioFormat.CHANNEL_IN_MONO,
+                    AudioFormat.ENCODING_PCM_16BIT);
+            //         AudioFormat.ENCODING_PCM_16BIT);
+
+            short [] audioData = new short[minBufferSize];
+
+            AudioRecord audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC,
+                    samplerate,
+                    AudioFormat.CHANNEL_IN_MONO,
+                    AudioFormat.ENCODING_PCM_16BIT,
+                    minBufferSize);
+
+            audioRecord.startRecording();
+
+            runOnUiThread(new Runnable() {
+                public void run() {
+                    Toast.makeText(getApplicationContext(), "start monitoring ", Toast.LENGTH_SHORT).show();
+                }
+            });
+
+            while (monitoring){
+                int numberOfShort = audioRecord.read(audioData, 0, minBufferSize);
+                for(int i = 0; i < numberOfShort; i++){
+                    //byte [] tempbyte=shortToByteArray(audioData[i]);
+                    //dataOutputStream.writeByte(tempbyte[1]);
+                    //dataOutputStream.writeByte(tempbyte[0]);
+                    //sum += Math.abs(audioData[i]);
+                    sum += audioData[i]*audioData[i];
+                }
+                sum=(long)sum/numberOfShort;
+                vadsum=(int)sum;
+                testwear2mobile(vadsum);
+                sum=0;vadsum=0;
+            }
+
+            audioRecord.stop();
+            audioRecord.release();
+            //long lengthbefore=file.length();
+            //Log.i("yuan-wear", "the length before converting to wav=" + lengthbefore);
+            //copyWaveFile(getTempFilename(), getFilename());
+            //deleteTempFile();
+            //SendRecording();
+            //CalloadFolderFile(Environment.getExternalStorageDirectory().getPath() + "/" + AUDIO_RECORDER_FOLDER);
+            //transamazon(sfilepath);
+
+            runOnUiThread(new Runnable() {
+                public void run() {
+                    Toast.makeText(getApplicationContext(), "monitoring finished ", Toast.LENGTH_SHORT).show();
+                }
+            });
+
+            //dataOutputStream.close();
+
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
@@ -690,7 +837,7 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
                 speed = Math.abs(x + y + z - last_x - last_y - last_z) / diffTime * 10000;
 
                 if (speed > SHAKE_THRESHOLD) {
-                    Toast.makeText(this, "shake detected w/ speed: " + speed, Toast.LENGTH_SHORT).show();
+                   // Toast.makeText(this, "shake detected w/ speed: " + speed, Toast.LENGTH_SHORT).show();
                 }
                 last_x = x;
                 last_y = y;
@@ -810,7 +957,39 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
         FileInputStream tfis = new FileInputStream(tfile);
         long length4=tfile.length();
         Log.i("yuan-wear", "the length4 before converting to wav="+length4);
-     //   Asset asset=Asset.createFromUri(Uri.fromFile(tfile));
+        //   Asset asset=Asset.createFromUri(Uri.fromFile(tfile));
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        byte[] buf = new byte[1024];
+        try {
+            for (int readNum; (readNum = tfis.read(buf)) != -1;) {
+                bos.write(buf, 0, readNum); //no doubt here is 0
+                //Writes len bytes from the specified byte array starting at offset off to this byte array output stream.
+                System.out.println("read " + readNum + " bytes,");
+                Log.i("yuan-wear","read " + readNum + " bytes,");
+            }
+        } catch (IOException ex) {
+        }
+        Asset asset=Asset.createFromBytes(bos.toByteArray());
+
+
+        PutDataMapRequest dataMap = PutDataMapRequest.create("/rcd");
+        dataMap.getDataMap().putAsset("profilercd", asset);
+        PutDataRequest request = dataMap.asPutDataRequest();
+        PendingResult<DataApi.DataItemResult> pendingResult = Wearable.DataApi
+                .putDataItem(mGoogleApiClient, request);
+        //PutDataRequest request = PutDataRequest.create("/rcd");
+        //Wearable.DataApi.putDataItem(mGoogleApiClient, request);
+        //request.putAsset("profilercd", asset);
+        Log.i("yuan-wear", "After send recording");
+    }
+
+    void BatchSendRecording(File tfile)throws FileNotFoundException, IOException
+    {
+        //File tfile=new File(filename);
+        FileInputStream tfis = new FileInputStream(tfile);
+        long length4=tfile.length();
+        Log.i("yuan-wear", "the length4 before converting to wav="+length4);
+        //   Asset asset=Asset.createFromUri(Uri.fromFile(tfile));
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         byte[] buf = new byte[1024];
         try {
@@ -927,16 +1106,92 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
         });
     }
 
+    public void uploadall()
+    {
+        Thread upload = new Thread(new Runnable(){
+            @Override
+            public void run() {
+                String filepath = Environment.getExternalStorageDirectory().getPath();
+                File file = new File(filepath,AUDIO_RECORDER_FOLDER);
+                uploadFolderFile(file);
+            }
+        });
+        upload.start();
+    }
+
     public void uploadFolderFile(File file) {
+        //File file=new File(filename);
         if (true) {
             try {
                 if (file.isDirectory()) {// 处理目录
-                    File files[] = file.listFiles();
+                    files = file.listFiles();
+                    queue.setText("file:" + files.length);
+                    // for (int i = 0; i < files.length; i++) {
                     for (int i = 0; i < files.length; i++) {
-                        transamazon(files[i].getAbsolutePath());
+                        BatchSendRecording(files[i].getAbsoluteFile());
+                        Log.v("yuan-wear","file uploaded"+files[i].getAbsoluteFile());
                         File tempde=new File(files[i].getAbsolutePath());
-                 //       tempde.delete();
+                        //Log.v("yuan-mobile","name"+tempde);
+                        tempde.delete();
+                        CalloadFolderFile(Environment.getExternalStorageDirectory().getPath() + "/" + AUDIO_RECORDER_FOLDER);
                     }
+                }
+            } catch (Exception e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        }
+    }
+
+
+    public void uploadFolderFiled(File file) {
+        //File file=new File(filename);
+        if (true) {
+            try {
+                if (file.isDirectory()) {// 处理目录
+                    files = file.listFiles();
+                    queue.setText("file:" + files.length);
+                    filelength=files.length;
+                    // for (int i = 0; i < files.length; i++) {
+                    it=0;
+                    final Handler handler = new Handler();
+                    Runnable runnable = new Runnable(){
+                        @Override
+                        public void run() {
+                            try {
+                                if (it<filelength) {
+                                    BatchSendRecording(files[it].getAbsoluteFile());
+                                    File tempde=new File(files[it].getAbsolutePath());
+                                    tempde.delete();
+                                    it=it+1;
+                                    CalloadFolderFile(Environment.getExternalStorageDirectory().getPath() + "/" + AUDIO_RECORDER_FOLDER);
+                                    handler.postDelayed(this, 10000);// 50是延时时长
+                                }
+                            }catch (Exception e){}
+                        }
+                    };
+                    handler.postDelayed(runnable, 10000);// 打开定时器，执行操作
+                  //  handler.removeCallbacks(this);// 关闭定时器处理
+                }
+            } catch (Exception e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public void CalloadFolderFile(String filename) {
+        File file=new File(filename);
+        if (true) {
+            try {
+                if (file.isDirectory()) {// 处理目录
+                    files = file.listFiles();
+                    runOnUiThread(new Runnable() {
+                        public void run() {
+                            queue.setText("file:" + files.length);
+                        }
+                    });
+
                 }
             } catch (Exception e) {
                 // TODO Auto-generated catch block

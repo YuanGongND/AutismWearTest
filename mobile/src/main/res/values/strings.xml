@@ -7,4 +7,6 @@
     <string name="title_activity_describe">Describe</string>
     <string name="title_activity_rate1p">Rate1p</string>
     <string name="title_activity_rate2p">Rate2p</string>
+    <string name="title_activity_band">BandActivity</string>
+    <string name="title_activity_gsr">GsrActivity</string>
 </resources>

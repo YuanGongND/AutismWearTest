@@ -31,7 +31,7 @@ public class TimeListDatabaseHelper {
         database=openHelper.getWritableDatabase();
     }
 
-    public void saveTimeRecord(String time,long vad,long hrt,float ax,float ay,float az)
+    public void saveTimeRecord(String time,int vad,int hrt,int ax,float ay,float az)
     {
         ContentValues contentValues=new ContentValues();
         contentValues.put(TIMETRACKER_COLUMN_TIME,time);
@@ -56,9 +56,9 @@ public class TimeListDatabaseHelper {
             database.execSQL("CREATE TABLE " + TABLE_NAME + "("
                     + TIMETRACKER_COLUMN_ID + " INTEGER PRIMARY KEY, "
                     + TIMETRACKER_COLUMN_TIME + " VARCHAR, "
-                    + TIMETRACKER_COLUMN_VAD + " REAL, "
-                    + TIMETRACKER_COLUMN_HRT + " REAL, "
-                    + TIMETRACKER_COLUMN_AX + " FLOAT, "
+                    + TIMETRACKER_COLUMN_VAD + " INTEGER, "
+                    + TIMETRACKER_COLUMN_HRT + " INTEGER, "
+                    + TIMETRACKER_COLUMN_AX + " INTEGER, "
                     + TIMETRACKER_COLUMN_AY + " FLOAT, "
                     + TIMETRACKER_COLUMN_AZ + " FLOAT )");
         }

@@ -7,6 +7,8 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="com.microsoft.band.service.access.BIND_BAND_SERVICE" />
 
     <application
         android:allowBackup="true"
@@ -62,7 +64,29 @@
         <activity
             android:name=".Rate2p"
             android:label="@string/title_activity_rate2p"
-            android:theme="@style/AppTheme.NoActionBar"></activity>
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name=".BandActivity"
+            android:label="@string/title_activity_band"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity android:name=".BandActivityDemo" />
+        <activity
+            android:name=".GsrActivity"
+            android:label="@string/title_activity_gsr"
+            android:theme="@style/AppTheme.NoActionBar" />
+
+        <service
+            android:name=".GsrService"
+            android:enabled="true"
+            android:exported="true" />
+        <service
+            android:name=".BodyTempService"
+            android:enabled="true"
+            android:exported="true" />
+        <service
+            android:name=".RRIService"
+            android:enabled="true"
+            android:exported="true"></service>
     </application>
 
 </manifest>
