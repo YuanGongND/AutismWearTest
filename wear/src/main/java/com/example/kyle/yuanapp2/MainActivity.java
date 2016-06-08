@@ -344,21 +344,21 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
             Log.v("yuan-wear","sumvad="+sumvad);
             Log.v("yuan-wear","sumhrt="+sumhrt);
 
-            if(sumvad>1440000)
+            if(sumvad>144000000) //if(sumvad>1440000)
             {
                 if(hrtsign==false) {
                     bindService(hrtintent, hrtt, Service.BIND_AUTO_CREATE);
                     hrtsign = true;
                 }
             }
-            if(sumvad<1440000)
+            if(true==false)  //if(sumvad<1440000)
             {
                 if(hrtsign==true) {
                     stophrt();
                     hrtsign = false;
                 }
             }
-            if(sumhrt>thresholdhrt&&sumvad>1440000)
+            if(sumhrt>thresholdhrt&&sumvad>144000000)  //if(sumhrt>thresholdhrt&&sumvad>1440000)
             {
                 if(hrtsign=true) {
                     stophrt();
@@ -690,6 +690,9 @@ public class MainActivity extends Activity implements HeartbeatService.OnChangeL
         // bindService(hrtintent, hrtt, Service.BIND_AUTO_CREATE);
         hrt=0;
         sumvad=0;
+
+        bindService(hrtintent, hrtt, Service.BIND_AUTO_CREATE); // need to be removed
+        hrtsign = true; //need to be removed
         //Log.v("yuan-wear", "service rebinded");
         //String tfilename = getTempFilename();
         //File file = new File(tfilename);

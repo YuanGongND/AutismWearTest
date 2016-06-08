@@ -1,5 +1,6 @@
 package com.example.kyle.yuanapp2;
 
+import android.app.Activity;
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
@@ -65,6 +66,7 @@ import com.example.kyle.yuanapp2.VibratorUtil;
 
 public class MainActivity extends AppCompatActivity implements MessageApi.MessageListener,GoogleApiClient.ConnectionCallbacks,GoogleApiClient.OnConnectionFailedListener {
 
+    public int emotionlabel=0;
     public int sign=0,gsrValue;
     public float bodyTempValue=0;
     public String databasename,timetemp,pathtemp,outpathtemp;
@@ -74,7 +76,7 @@ public class MainActivity extends AppCompatActivity implements MessageApi.Messag
     private int mColorCount = 0;
     private TimeListDatabaseHelper databaseHelper;
     public Firebase mref;
-    Button dstart,dstop,band;
+    Button dstart,dstop,band,positiveemotion,negativeemotion;
     TextView uppercentage,messagesign;
     AmazonS3 s3;
     CognitoCachingCredentialsProvider credentialsProvider;
@@ -118,27 +120,31 @@ public class MainActivity extends AppCompatActivity implements MessageApi.Messag
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-            }
-        });
-       // Intent sint=new Intent(MainActivity.this, DataLayerListenerServicePhone.class);
-       // startService(sint);
+        //Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        //setSupportActionBar(toolbar);
+        //FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+        //fab.setOnClickListener(new View.OnClickListener() {
+        //    @Override
+        //    public void onClick(View view) {
+        //        Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
+        //                .setAction("Action", null).show();
+        //    }
+        //});
+        Intent sint=new Intent(MainActivity.this, DataLayerListenerServicePhone.class);
+        startService(sint);
         dstart = (Button)findViewById(R.id.startdatabase);
         dstop = (Button)findViewById(R.id.stopdatabase);
         band=(Button)findViewById(R.id.connectband);
+        positiveemotion=(Button)findViewById(R.id.positivelabel);
+        negativeemotion=(Button)findViewById(R.id.negativelabel);
         uppercentage=(TextView)findViewById(R.id.percentage);
         messagesign=(TextView)findViewById(R.id.messagesign);
         describep=(ImageView)findViewById(R.id.describep);
         dstart.setOnClickListener(dstartOnClickListener);
         dstop.setOnClickListener(dstopOnClickListener);
         band.setOnClickListener(bandOnClickListener);
+        positiveemotion.setOnClickListener(positiveemotionListener);
+        negativeemotion.setOnClickListener(negativeemotionListener);
 
         bandgsrintent=new Intent(MainActivity.this,GsrService.class);
         bindService(bandgsrintent,gsrconnection,BIND_AUTO_CREATE);
@@ -273,7 +279,14 @@ public class MainActivity extends AppCompatActivity implements MessageApi.Messag
             dstart.setEnabled(true);
             dstop.setEnabled(false);
             databaserecording =false;
-            writedatabase();
+
+            new Thread(new Runnable(){
+                @Override
+                public void run(){
+                    writedatabase();
+                }
+            }).start();
+          //  writedatabase();
             //databaseHelper=new TimeListDatabaseHelper(MainActivity.this);
             Log.d("yuan-wear", "database saved");
             Toast.makeText(getApplicationContext(), "database saved", Toast.LENGTH_SHORT).show();
@@ -288,6 +301,24 @@ public class MainActivity extends AppCompatActivity implements MessageApi.Messag
             unbindService(bodytempconnection);
             stopService(bandBodyTempintent);
         }};
+
+    View.OnClickListener positiveemotionListener=new View.OnClickListener()
+    {
+        @Override
+        public void onClick(View arg0)
+        {
+            emotionlabel=1;
+        }
+    };
+
+    View.OnClickListener negativeemotionListener=new View.OnClickListener()
+    {
+        @Override
+        public void onClick(View arg0)
+        {
+            emotionlabel=2;
+        }
+    };
 
 
     // create database
@@ -325,12 +356,15 @@ public class MainActivity extends AppCompatActivity implements MessageApi.Messag
                 {break;}
             }
             fos.flush();
-            Toast.makeText(this, "Database saved to sdcard successfully", Toast.LENGTH_LONG).show();
+
+            Log.d("yuan-mobile","database saved success");
+          //  Toast.makeText(this, "Database saved to sdcard successfully", Toast.LENGTH_LONG).show();
         }
         catch(Exception e)
         {
             e.printStackTrace();
-            Toast.makeText(this, "DB dump ERROR", Toast.LENGTH_LONG).show();
+            Log.d("yuan-mobile","database saved failed");
+//            Toast.makeText(this, "DB dump ERROR", Toast.LENGTH_LONG).show();
         }
         finally
         {
@@ -450,14 +484,18 @@ public class MainActivity extends AppCompatActivity implements MessageApi.Messag
                 updateTextFielday(intent.getStringExtra("ay"));
                 updateTextFieldaz(intent.getStringExtra("az"));
                 updateTextFieldgspd(intent.getStringExtra("gspd"));
-                updateTextFieldgx(intent.getStringExtra("gx")+gsrValue+"");
-                updateTextFieldgy(intent.getStringExtra("gy")+bodyTempValue+"");
+                updateTextFieldgx("GSR="+gsrValue+"");
+                updateTextFieldgy("Skin Temperature="+bodyTempValue+"");
                 updateTextFieldgz(intent.getStringExtra("gz"));
                 SimpleDateFormat sdf=new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
                 java.util.Date date=new java.util.Date();
                 timetemp=sdf.format(date);
                 if(databaserecording) {
-                    databaseHelper.saveTimeRecord(timetemp,intent.getIntExtra("vadvalue", 0), intent.getIntExtra("hrtvalue", 0), gsrValue, bodyTempValue, intent.getFloatExtra("azvalue", 0));
+                    databaseHelper.saveTimeRecord(timetemp,intent.getIntExtra("vadvalue", 0), intent.getIntExtra("hrtvalue", 0), gsrValue, bodyTempValue, emotionlabel);
+                }
+                if(emotionlabel!=0)
+                {
+                    emotionlabel=0;
                 }
             }
         };

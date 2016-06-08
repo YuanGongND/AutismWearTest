@@ -18,9 +18,9 @@ public class TimeListDatabaseHelper {
     private static final String TIMETRACKER_COLUMN_TIME = "time";
     private static final String TIMETRACKER_COLUMN_VAD = "vad";
     private static final String TIMETRACKER_COLUMN_HRT = "hrt";
-    private static final String TIMETRACKER_COLUMN_AX= "ax";
-    private static final String TIMETRACKER_COLUMN_AY = "ay";
-    private static final String TIMETRACKER_COLUMN_AZ = "az";
+    private static final String TIMETRACKER_COLUMN_GSR= "ax";
+    private static final String TIMETRACKER_COLUMN_BTEMP = "ay";
+    private static final String TIMETRACKER_COLUMN_LABEL = "az";
 
     private TimeTrackerOpenHelper openHelper;
     private SQLiteDatabase database;
@@ -31,15 +31,15 @@ public class TimeListDatabaseHelper {
         database=openHelper.getWritableDatabase();
     }
 
-    public void saveTimeRecord(String time,int vad,int hrt,int ax,float ay,float az)
+    public void saveTimeRecord(String time,int vad,int hrt,int ax,float ay,int az)
     {
         ContentValues contentValues=new ContentValues();
         contentValues.put(TIMETRACKER_COLUMN_TIME,time);
         contentValues.put(TIMETRACKER_COLUMN_VAD, vad);
         contentValues.put(TIMETRACKER_COLUMN_HRT, hrt);
-        contentValues.put(TIMETRACKER_COLUMN_AX, ax);
-        contentValues.put(TIMETRACKER_COLUMN_AY, ay);
-        contentValues.put(TIMETRACKER_COLUMN_AZ, az);
+        contentValues.put(TIMETRACKER_COLUMN_GSR, ax);
+        contentValues.put(TIMETRACKER_COLUMN_BTEMP, ay);
+        contentValues.put(TIMETRACKER_COLUMN_LABEL, az);
         database.insert(TABLE_NAME, null, contentValues);
     }
 
@@ -58,9 +58,9 @@ public class TimeListDatabaseHelper {
                     + TIMETRACKER_COLUMN_TIME + " VARCHAR, "
                     + TIMETRACKER_COLUMN_VAD + " INTEGER, "
                     + TIMETRACKER_COLUMN_HRT + " INTEGER, "
-                    + TIMETRACKER_COLUMN_AX + " INTEGER, "
-                    + TIMETRACKER_COLUMN_AY + " FLOAT, "
-                    + TIMETRACKER_COLUMN_AZ + " FLOAT )");
+                    + TIMETRACKER_COLUMN_GSR + " INTEGER, "
+                    + TIMETRACKER_COLUMN_BTEMP + " FLOAT, "
+                    + TIMETRACKER_COLUMN_LABEL + " INTEGER )");
         }
 
         public void onUpgrade(SQLiteDatabase database,int oldVersion,int newVersion)
